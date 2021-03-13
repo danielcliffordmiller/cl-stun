@@ -2,7 +2,9 @@
 
 (defpackage cl-stun
   (:use
-   :common-lisp)
+   :common-lisp
+   :ironclad
+   :flexi-streams)
   (:export
    #:decompose-message-type
    #:compose-message-type))
