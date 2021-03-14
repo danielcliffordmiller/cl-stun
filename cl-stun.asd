@@ -14,4 +14,8 @@
   :author "Dan Miller <danielcliffordmiller@gmail.com>"
   :depends-on (:cl-stun :fiveam)
   :components ((:module "t"
-			:components ((:file "tests")))))
+		:components ((:file "tests"))))
+  :perform (test-op (o s)
+                    (uiop:symbol-call :fiveam '#:run!
+				      (uiop:find-symbol* '#:test-suite
+							 :cl-stun.test))))
