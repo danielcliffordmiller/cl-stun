@@ -1,3 +1,11 @@
+(in-package :cl)
+
+(defpackage cl-stun.test
+  (:use
+   :common-lisp
+   :cl-stun
+   :fiveam))
+
 (in-package :cl-stun.test)
 
 (def-suite test-suite

@@ -10,9 +10,3 @@
    #:decompose-message-type
    #:compose-message-type
    #:make-stun-message))
-
-(defpackage cl-stun.test
-  (:use
-   :common-lisp
-   :cl-stun
-   :fiveam))
