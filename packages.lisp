@@ -2,6 +2,7 @@
 
 (defpackage cl-stun
   (:use
+   :alexandria
    :common-lisp
    :ironclad
    :usocket
@@ -9,4 +10,6 @@
   (:export
    #:decompose-message-type
    #:compose-message-type
-   #:make-stun-message))
+   #:make-stun-message)
+  (:shadow
+   #:xor))
