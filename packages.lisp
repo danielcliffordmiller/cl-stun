@@ -4,6 +4,7 @@
   (:use
    :common-lisp
    :ironclad
+   :usocket
    :flexi-streams)
   (:export
    #:decompose-message-type

@@ -94,6 +94,7 @@
 (defun render-stun-message (stun-message stream)
   "render a stun-message out to a stream"
   (declare (type stun-message stun-message))
+  ;; write the message-type
   (write-sequence
    (integer-to-octets
     (compose-message-type (stun-message-method-type stun-message)
