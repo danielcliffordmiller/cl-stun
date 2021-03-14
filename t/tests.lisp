@@ -16,3 +16,8 @@
 (test compose-message-type
   "happy path for message-type composition"
   (is (equal #x0001 (compose-message-type :binding :request))))
+
+(test looks-like-stun-message
+  "does it look like a stun message"
+  (is-true (cl-stun::looks-like-stun-message
+	    (cl-stun::stun-message-seq (make-stun-message)))))

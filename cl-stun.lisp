@@ -40,9 +40,6 @@
    :type list
    :read-only t))
 
-(defstruct stun-attribute
-  "structure for a stun message attribute")
-
 (defun field-extract (packed mask)
   "taking in an interger and a mask, return the value with our mask"
   (loop	:with acc = 0 :and position = 0
@@ -81,31 +78,39 @@
   "return a cryptographically secure sequence of 96 bits (12 bytes)"
   (random-data 12))
 
-(defun looks-like-stun-package (byte-sequence)
+(defun looks-like-stun-message (byte-sequence)
   "function to tell if a packet looks like a stun message"
   ;; there are four ways to tell, according to the spec:
   ;; 1: The first two bits of the message should be 0b00
-  ;; 2: Bytes 5-8 should comprise the magic cookie.
-  ;; 3: The last two bits of the message length field should be 0x00
-  ;; 4: (optionally) a FIGNERPRINT attribute
-  t)
+  (and (zerop (ldb (byte 2 6) (elt byte-sequence 0)))
+       ;; 2: Bytes 5-8 should comprise the magic cookie.
+       (equalp (subseq byte-sequence 4 8) *magic-cookie*)
+       ;; 3: The last two bits of the message length field should be 0x00
+       (zerop (ldb (byte 2 0) (elt byte-sequence 3)))
+       ;; 4: (optionally) a FIGNERPRINT attribute
+       ;; TODO: check the fingerprint attribute
+       ))
 
-(defun render-stun-message (stun-message)
-  "turn a stun-message into a sequence of bytes"
+(defun render-stun-message (stun-message stream)
+  "render a stun-message out to a stream"
   (declare (type stun-message stun-message))
-  (with-output-to-sequence (o)
-    (write-sequence
-     (integer-to-octets
-      (compose-message-type (stun-message-method-type stun-message)
-			    (stun-message-class-type stun-message))
-      :big-endian t
-      :n-bits 16)
-     o)
-    (write-sequence (integer-to-octets 0
-				       :big-endian t
-				       :n-bits 16) o)
-    (write-sequence *magic-cookie* o)
-    (write-sequence (stun-message-transaction-id stun-message) o))
+  (write-sequence
+   (integer-to-octets
+    (compose-message-type (stun-message-method-type stun-message)
+			  (stun-message-class-type stun-message))
+    :big-endian t
+    :n-bits 16)
+   stream)
+  (write-sequence (integer-to-octets 0
+				     :big-endian t
+				     :n-bits 16) stream)
+  (write-sequence *magic-cookie* stream)
+  (write-sequence (stun-message-transaction-id stun-message) stream)
   ;; TODO: write out the attributes
   )
 
+(defun stun-message-seq (stun-message)
+  "turn a stun-message into a sequence of bytes"
+  (declare (type stun-message stun-message))
+  (with-output-to-sequence (o)
+    (render-stun-message stun-message o)))

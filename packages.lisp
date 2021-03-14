@@ -7,7 +7,8 @@
    :flexi-streams)
   (:export
    #:decompose-message-type
-   #:compose-message-type))
+   #:compose-message-type
+   #:make-stun-message))
 
 (defpackage cl-stun.test
   (:use
