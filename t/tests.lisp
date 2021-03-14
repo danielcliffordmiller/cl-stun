@@ -4,6 +4,7 @@
   (:use
    :common-lisp
    :cl-stun
+   :ironclad
    :fiveam))
 
 (in-package :cl-stun.test)
@@ -42,3 +43,20 @@
        '(#(8 0 0 0 0 0 0 0 0 0 0 0 0 0 0 4) :ip6)))
   (is (equalp (cl-stun::parse-ip-addr "::a:208")
 	      '(#(0 0 0 0 0 0 0 0 0 0 0 0 0 10 2 8) :ip6))))
+
+(test mapped-address
+  "test the attribute creation of a mapped attribute"
+  (let* ((ip-address #(192 168 1 101))
+	 (port 80)
+	 (buf-res (cl-stun::attribute-seq
+		   '() :mapped-address (list
+					ip-address
+					port))))
+    ;; check length reported is 8 bytes
+    (is (= (ub16ref/be buf-res 2) 8))
+    ;; check address family is ip4
+    (is (eql (cdr (assoc (elt buf-res 5) cl-stun::*address-families*))
+	     :ip4))
+    ;; port is port in
+    (is (= (ub16ref/be buf-res 6) port))
+    (is (equalp (subseq buf-res 8) ip-address))))

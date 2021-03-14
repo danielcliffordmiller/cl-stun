@@ -48,8 +48,12 @@
 	    (make-array (list ,length) :element-type '(unsigned-byte 8)))
 	  (,attribute-code
 	    (car (rassoc ,attribute-type *attribute-types*))))
+      ;; atribute code takes the first 16 bits
       (setf (ub16ref/be ,buffer-name 0) ,attribute-code)
-      (setf (ub16ref/be ,buffer-name 2) (- (length ,buffer-name) 8))
+      ;; length is the next 16 bits, evaluated to be the
+      ;; length of the buffer created minus the Type and Length
+      ;; fields (which take up a total of 32 bits or 4 bytes)
+      (setf (ub16ref/be ,buffer-name 2) (- (length ,buffer-name) 4))
       ,@body
       ,buffer-name)))
 
