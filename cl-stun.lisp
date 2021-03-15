@@ -21,6 +21,8 @@
 (defvar *method-types*
   '((#b000000000001 . :binding)))
 
+(defvar *message-header-size* 20)
+
 (defstruct stun-message
   "structure for a stun message"
   (transaction-id
@@ -94,7 +96,8 @@
 (defun stun-message-seq (stun-message)
   "turn a stun-message into a sequence of bytes"
   (declare (type stun-message stun-message))
-  (let ((header (make-array '(20) :element-type '(unsigned-byte 8)))
+  (let ((header (make-array (list *message-header-size*)
+			    :element-type '(unsigned-byte 8)))
 	(message-type
 	  (compose-message-type
 	   (stun-message-method-type stun-message)

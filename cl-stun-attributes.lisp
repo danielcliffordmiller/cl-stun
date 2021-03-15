@@ -80,6 +80,17 @@
 	  (setf (ub16ref/be buffer 6) port)
 	  (setf (subseq buffer 8) addr))))))
 
+(defun scan-for-attributes (buffer)
+  (loop :with message-length = (message-length buffer)
+	:for offset = *message-header-size*
+	  :then (+ (next-word-boundary
+		    (ub16ref/be buffer (+ offset 2)))
+		   *tlv-header-size*
+		   offset)
+	:collect (cdr (assoc (ub16ref/be buffer offset) *attribute-types*))
+	  :into attributes
+	:if (>= offset message-length) :return attributes))
+
 (defun next-word-boundary (n)
   "takes a length and rounds up to the nearest multiple of four"
   (logandc2 (+ n #b11) #b11))
