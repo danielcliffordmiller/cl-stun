@@ -84,7 +84,7 @@
   ;; 1: The first two bits of the message should be 0b00
   (and (zerop (ldb (byte 2 6) (elt byte-sequence 0)))
        ;; 2: Bytes 5-8 should comprise the magic cookie.
-       (equalp (subseq byte-sequence 4 8) *magic-cookie*)
+       (equalp (magic-cookie byte-sequence) *magic-cookie*)
        ;; 3: The last two bits of the message length field should be 0x00
        (zerop (ldb (byte 2 0) (elt byte-sequence 3)))
        ;; 4: (optionally) a FIGNERPRINT attribute
@@ -100,11 +100,69 @@
 	   (stun-message-method-type stun-message)
 	   (stun-message-class-type stun-message))))
     ;; set message-type
-    (setf (ub16ref/be header 0) message-type)
+    (setf (message-type header) message-type)
     ;; length is calculated later
     ;; now magic cookie
-    (setf (subseq header 4) *magic-cookie*)
+    (setf (magic-cookie header) *magic-cookie*)
     ;; set transaction-id
-    (setf (subseq header 8) (stun-message-transaction-id stun-message))
+    (setf (transaction-id header)
+	  (stun-message-transaction-id stun-message))
     ;; TODO: write out the attributes
     header))
+
+
+;; buffer utils
+
+(defvar *message-type-offset* 0)
+
+(defun message-type (buffer)
+  (declare (type (vector (unsigned-byte 8)) buffer))
+  (ub16ref/be buffer *message-type-offset*))
+
+(defun (setf message-type) (value buffer)
+  (declare (type (vector (unsigned-byte 8)) buffer)
+	   (type (unsigned-byte 14) value))
+  (setf (ub16ref/be buffer *message-type-offset*) value))
+
+(defvar *message-length-offset* 2)
+
+(defun message-length (buffer)
+  (declare (type (simple-array (unsigned-byte 8)) buffer))
+  (ub16ref/be buffer *message-length-offset*))
+
+(defun (setf message-length) (value buffer)
+  (declare (type (vector (unsigned-byte 8)) buffer)
+	   (type (unsigned-byte 16) value))
+  (setf (ub16ref/be buffer *message-length-offset*) value))
+
+(defvar *magic-cookie-offset* 4)
+(defvar *magic-cookie-end* 8)
+
+(defun magic-cookie (buffer)
+  (declare (type (vector (unsigned-byte 8)) buffer))
+  (subseq buffer
+	  *magic-cookie-offset*
+	  *magic-cookie-end*))
+
+(defun (setf magic-cookie) (value buffer)
+  (declare (type (vector (unsigned-byte 8)) buffer)
+	   (type vector value))
+  (setf (subseq buffer
+		*magic-cookie-offset*
+		*magic-cookie-end*) value))
+
+(defvar *transaction-id-offset* 8)
+(defvar *transaction-id-end* 20)
+
+(defun transaction-id (buffer)
+  (declare (type (vector (unsigned-byte 8)) buffer))
+  (subseq buffer
+	  *transaction-id-offset*
+	  *transaction-id-end*))
+
+(defun (setf transaction-id) (value buffer)
+  (declare (type (vector (unsigned-byte 8)) buffer)
+	   (type (vector (unsigned-byte 8)) value))
+  (setf (subseq buffer
+		*transaction-id-offset*
+		*transaction-id-end*) value))
