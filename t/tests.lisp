@@ -60,3 +60,12 @@
     ;; port is port in
     (is (= port (ub16ref/be buf-res 6)))
     (is (equalp ip-address (subseq buf-res 8)))))
+
+(test next-word-boundary
+  "tests to round up lengths on 32-bit boundaries"
+  (is (= #b0100 (cl-stun::next-word-boundary #b0100)))
+  (is (= #b1000 (cl-stun::next-word-boundary #b0101)))
+  (is (= #b1000 (cl-stun::next-word-boundary #b0110)))
+  (is (= #b1000 (cl-stun::next-word-boundary #b0111)))
+  (is (= #b1000 (cl-stun::next-word-boundary #b1000)))
+  (is (= #b1100 (cl-stun::next-word-boundary #b1001))))

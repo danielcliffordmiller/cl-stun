@@ -42,10 +42,18 @@
 (defstruct stun-attribute
   "structure for a stun message attribute")
 
+(defvar *tlv-header-size* 4) ;; type and length fields are four bytes long
+
 (defmacro with-tlv-buffer ((buffer-name attribute-type length) &body body)
+  "Macro to help create encoded attributes.
+
+`length` should be the length of the value part of the attribute
+(in other words, not including the length of the type and length fields)"
   (with-gensyms (attribute-code)
    `(let ((,buffer-name
-	    (make-array (list ,length) :element-type '(unsigned-byte 8)))
+	    (make-array (list (next-word-boundary
+			       (+ ,length *tlv-header-size*)))
+			:element-type '(unsigned-byte 8)))
 	  (,attribute-code
 	    (car (rassoc ,attribute-type *attribute-types*))))
       ;; atribute code takes the first 16 bits
@@ -53,7 +61,7 @@
       ;; length is the next 16 bits, evaluated to be the
       ;; length of the buffer created minus the Type and Length
       ;; fields (which take up a total of 32 bits or 4 bytes)
-      (setf (ub16ref/be ,buffer-name 2) (- (length ,buffer-name) 4))
+      (setf (ub16ref/be ,buffer-name 2) ,length)
       ,@body
       ,buffer-name)))
 
@@ -66,11 +74,15 @@
   (assert (eql type :mapped-address))
   (destructuring-bind (ip-addr port) args
     (destructuring-bind (addr family) (parse-ip-addr ip-addr)
-      (let ((buffer-size (case family (:ip4 12) (:ip6 24))))
+      (let ((buffer-size (case family (:ip4 8) (:ip6 20))))
 	(with-tlv-buffer (buffer type buffer-size)
 	  (setf (elt buffer 5) (car (rassoc family *address-families*)))
 	  (setf (ub16ref/be buffer 6) port)
 	  (setf (subseq buffer 8) addr))))))
+
+(defun next-word-boundary (n)
+  "takes a length and rounds up to the nearest multiple of four"
+  (logandc2 (+ n #b11) #b11))
 
 (defun parse-ip-addr (addr)
   "goal here take in vector or string representation of address return only vecters and type"
