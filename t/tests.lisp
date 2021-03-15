@@ -34,15 +34,15 @@
 (test ip-address-parsing
   "test that we can determine different sorts of ip addresses"
   (is (equalp
-       (cl-stun::parse-ip-addr #(127 0 0 1)) '(#(127 0 0 1) :ip4)))
+       '(#(127 0 0 1) :ip4) (cl-stun::parse-ip-addr #(127 0 0 1))))
   (is (equalp
-       (cl-stun::parse-ip-addr "192.168.1.136") '(#(192 168 1 136) :ip4)))
+       '(#(192 168 1 136) :ip4) (cl-stun::parse-ip-addr "192.168.1.136")))
   (is (equalp
+       '(#(8 0 0 0 0 0 0 0 0 0 0 0 0 0 0 4) :ip6)
        (cl-stun::parse-ip-addr
-	#(8 0 0 0 0 0 0 0 0 0 0 0 0 0 0 4))
-       '(#(8 0 0 0 0 0 0 0 0 0 0 0 0 0 0 4) :ip6)))
-  (is (equalp (cl-stun::parse-ip-addr "::a:208")
-	      '(#(0 0 0 0 0 0 0 0 0 0 0 0 0 10 2 8) :ip6))))
+	#(8 0 0 0 0 0 0 0 0 0 0 0 0 0 0 4))))
+  (is (equalp '(#(0 0 0 0 0 0 0 0 0 0 0 0 0 10 2 8) :ip6)
+	      (cl-stun::parse-ip-addr "::a:208"))))
 
 (test mapped-address
   "test the attribute creation of a mapped attribute"
@@ -53,10 +53,10 @@
 					ip-address
 					port))))
     ;; check length reported is 8 bytes
-    (is (= (ub16ref/be buf-res 2) 8))
+    (is (= 8 (ub16ref/be buf-res 2)))
     ;; check address family is ip4
-    (is (eql (cdr (assoc (elt buf-res 5) cl-stun::*address-families*))
-	     :ip4))
+    (is (eql :ip4
+	     (cdr (assoc (elt buf-res 5) cl-stun::*address-families*))))
     ;; port is port in
-    (is (= (ub16ref/be buf-res 6) port))
-    (is (equalp (subseq buf-res 8) ip-address))))
+    (is (= port (ub16ref/be buf-res 6)))
+    (is (equalp ip-address (subseq buf-res 8)))))
