@@ -65,10 +65,10 @@
       ,@body
       ,buffer-name)))
 
-(defgeneric attribute-seq (octets type args)
+(defgeneric encode-attribute (octets type args)
   (:documentation "This is a mechanism by which the different attributes are turned to sequences of octets"))
 
-(defmethod attribute-seq (octets (type (eql :mapped-address)) args)
+(defmethod encode-attribute (octets (type (eql :mapped-address)) args)
   "render mapped address attribute"
   (declare (ignore octets))
   (assert (eql type :mapped-address))

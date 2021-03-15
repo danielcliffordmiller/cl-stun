@@ -48,7 +48,7 @@
   "test the attribute creation of a mapped attribute"
   (let* ((ip-address #(192 168 1 101))
 	 (port 80)
-	 (buf-res (cl-stun::attribute-seq
+	 (buf-res (cl-stun::encode-attribute
 		   '() :mapped-address (list
 					ip-address
 					port))))

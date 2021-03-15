@@ -6,7 +6,7 @@
   :serial t
   :components ((:file "packages")
 	       (:file "cl-stun")
-	       (:file "cl-stun-attributes")
+	       (:file "attributes")
 	       (:file "samples"))
   :in-order-to ((test-op (test-op "cl-stun/test"))))
 
