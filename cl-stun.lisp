@@ -91,27 +91,20 @@
        ;; TODO: check the fingerprint attribute
        ))
 
-(defun render-stun-message (stun-message stream)
-  "render a stun-message out to a stream"
-  (declare (type stun-message stun-message))
-  ;; write the message-type
-  (write-sequence
-   (integer-to-octets
-    (compose-message-type (stun-message-method-type stun-message)
-			  (stun-message-class-type stun-message))
-    :big-endian t
-    :n-bits 16)
-   stream)
-  (write-sequence (integer-to-octets 0
-				     :big-endian t
-				     :n-bits 16) stream)
-  (write-sequence *magic-cookie* stream)
-  (write-sequence (stun-message-transaction-id stun-message) stream)
-  ;; TODO: write out the attributes
-  )
-
 (defun stun-message-seq (stun-message)
   "turn a stun-message into a sequence of bytes"
   (declare (type stun-message stun-message))
-  (with-output-to-sequence (o)
-    (render-stun-message stun-message o)))
+  (let ((header (make-array '(20) :element-type '(unsigned-byte 8)))
+	(message-type
+	  (compose-message-type
+	   (stun-message-method-type stun-message)
+	   (stun-message-class-type stun-message))))
+    ;; set message-type
+    (setf (ub16ref/be header 0) message-type)
+    ;; length is calculated later
+    ;; now magic cookie
+    (setf (subseq header 4) *magic-cookie*)
+    ;; set transaction-id
+    (setf (subseq header 8) (stun-message-transaction-id stun-message))
+    ;; TODO: write out the attributes
+    header))
