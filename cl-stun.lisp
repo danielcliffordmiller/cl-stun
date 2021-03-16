@@ -119,7 +119,8 @@
      :method-type method-type
      :class-type class-type
      :attributes
-     (loop :with message-length = (message-length message)
+     (loop :with message-length = (+ (message-length message)
+                                     +message-header-size+)
 	   :for offset = +message-header-size+ :then next
 	   :for next = (+ (next-word-boundary
 			   (ub16ref/be message (+ offset 2)))
