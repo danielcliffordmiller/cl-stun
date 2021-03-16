@@ -119,9 +119,9 @@
 	      (elt dest i)
 	      (logxor
 	       (elt dest i)
-	       (elt message (+ *magic-cookie-offset* i))))
+	       (elt message (+ +magic-cookie-offset+ i))))
 	 :finally (return dest))
-   (logxor (ub16ref/be message *magic-cookie-offset*)
+   (logxor (ub16ref/be message +magic-cookie-offset+)
 	   (ub16ref/be octets 2))))
 
 (defun process-tlv (octets message offset)

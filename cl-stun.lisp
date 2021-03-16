@@ -178,7 +178,7 @@
 
 (defvar *a*
   (make-array '(576)
-	      :element-type (unsigned-byte 8)))
+	      :element-type '(unsigned-byte 8)))
 
 (defun bind-request (host &optional (port 3478))
   (let ((s (socket-connect host port :protocol :datagram)))
