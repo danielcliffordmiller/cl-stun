@@ -8,8 +8,6 @@
    :usocket
    :flexi-streams)
   (:export
-   #:decompose-message-type
-   #:compose-message-type
    #:make-stun-message
    #:bytes)
   (:shadow

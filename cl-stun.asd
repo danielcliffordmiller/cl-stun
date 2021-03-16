@@ -5,6 +5,8 @@
   :depends-on (:usocket :alexandria :ironclad :flexi-streams)
   :serial t
   :components ((:file "packages")
+	       (:file "utils")
+	       (:file "offsets")
 	       (:file "cl-stun")
 	       (:file "attributes")
 	       (:file "samples"))

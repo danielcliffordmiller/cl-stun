@@ -19,18 +19,18 @@
   "sample test to get us off the ground"
   (is (= 2 2)))
 
-(test decompose-message-type
-  "happy path for method-type decomposition"
-  (is (equal '(:binding :request) (decompose-message-type #x0001))))
+(test decode-message-type
+  "happy path for method-type decooding"
+  (is (equal '(:binding :request) (cl-stun::decode-message-type #x0001))))
 
-(test compose-message-type
-  "happy path for message-type composition"
-  (is (equal #x0001 (compose-message-type :binding :request))))
+(test encode-message-type
+  "happy path for message-type encoding"
+  (is (equal #x0001 (cl-stun::encode-message-type :binding :request))))
 
 (test looks-like-stun-message
   "does it look like a stun message"
   (is-true (cl-stun::looks-like-stun-message
-	    (cl-stun::stun-message-seq (make-stun-message)))))
+	    (cl-stun::encode-stun-message (make-stun-message)))))
 
 (test ip-address-parsing
   "test that we can determine different sorts of ip addresses"
@@ -117,5 +117,5 @@
 		    in-data
 		    *res-xor-mapped*
 		    nil)))
-    (is (= 56264 (first out-data)))
-    (is (equalp #(192 168 1 26) (second out-data)))))
+    (is (equalp #(192 168 1 26) (first out-data)))
+    (is (= 56264 (second out-data)))))

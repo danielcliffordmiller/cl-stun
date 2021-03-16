@@ -21,8 +21,6 @@
 (defvar *method-types*
   '((#b000000000001 . :binding)))
 
-(defvar *message-header-size* 20)
-
 (defstruct stun-message
   "structure for a stun message"
   (transaction-id
@@ -62,15 +60,15 @@
 	:do (incf position (byte-size byte-spec))
 	:finally (return acc)))
 
-(defun decompose-message-type (message-type)
-  "decompose-message-type into method-type and class-type"
+(defun decode-message-type (message-type)
+  "decode message-type into method-type and class-type"
   (let ((class-value (field-extract message-type *class-type-mask*))
 	(method-value (field-extract message-type *method-type-mask*)))
     (list
      (cdr (assoc method-value *method-types*))
      (cdr (assoc class-value *class-types*)))))
 
-(defun compose-message-type (method-type class-type)
+(defun encode-message-type (method-type class-type)
   (let ((class-value (car (rassoc class-type *class-types*)))
 	(method-value (car (rassoc method-type *method-types*))))
     (field-inject method-value *method-type-mask*
@@ -93,13 +91,13 @@
        ;; TODO: check the fingerprint attribute
        ))
 
-(defun stun-message-seq (stun-message)
+(defun encode-stun-message (stun-message)
   "turn a stun-message into a sequence of bytes"
   (declare (type stun-message stun-message))
   (let ((header (make-array (list *message-header-size*)
 			    :element-type '(unsigned-byte 8)))
 	(message-type
-	  (compose-message-type
+	  (encode-message-type
 	   (stun-message-method-type stun-message)
 	   (stun-message-class-type stun-message))))
     ;; set message-type
@@ -113,10 +111,20 @@
     ;; TODO: write out the attributes
     header))
 
+(defun decode-message (message)
+  (make-stun-message
+   :transaction-id (transaction-id message)
+   :attributes
+   (loop :with message-length = (message-length message)
+	 :for offset = *message-header-size* :then next
+	 :for next = (+ (next-word-boundary
+			 (ub16ref/be message (+ offset 2)))
+			*tlv-header-size*
+			offset)
+	 :collect (process-tlv (subseq message offset next) message offset)
+	 :until (>= offset message-length))))
 
 ;; buffer utils
-
-(defvar *message-type-offset* 0)
 
 (defun message-type (buffer)
   (declare (type (vector (unsigned-byte 8)) buffer))
@@ -127,8 +135,6 @@
 	   (type (unsigned-byte 14) value))
   (setf (ub16ref/be buffer *message-type-offset*) value))
 
-(defvar *message-length-offset* 2)
-
 (defun message-length (buffer)
   (declare (type (simple-array (unsigned-byte 8)) buffer))
   (ub16ref/be buffer *message-length-offset*))
@@ -137,9 +143,6 @@
   (declare (type (vector (unsigned-byte 8)) buffer)
 	   (type (unsigned-byte 16) value))
   (setf (ub16ref/be buffer *message-length-offset*) value))
-
-(defvar *magic-cookie-offset* 4)
-(defvar *magic-cookie-end* 8)
 
 (defun magic-cookie (buffer)
   (declare (type (vector (unsigned-byte 8)) buffer))
@@ -153,9 +156,6 @@
   (setf (subseq buffer
 		*magic-cookie-offset*
 		*magic-cookie-end*) value))
-
-(defvar *transaction-id-offset* 8)
-(defvar *transaction-id-end* 20)
 
 (defun transaction-id (buffer)
   (declare (type (vector (unsigned-byte 8)) buffer))

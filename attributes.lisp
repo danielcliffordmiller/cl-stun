@@ -32,11 +32,6 @@
 (defstruct stun-attribute
   "structure for a stun message attribute")
 
-(defvar *tlv-header-size* 4) ;; type and length fields are four bytes long
-
-(defvar *tlv-type-offset* 0)
-(defvar *tlv-length-offset* 2)
-
 (defun tlv-type (buffer)
   (ub16ref/be buffer *tlv-type-offset*))
 
@@ -130,6 +125,8 @@
 	   (ub16ref/be octets 2))))
 
 (defun process-tlv (octets message offset)
+  ;; takes in a buffer that consists of a tlv and will
+  ;; look up the attribute and try to decode it
   (let ((attr (cdr (assoc (tlv-type octets)
 			  *attribute-types*))))
     (if attr
@@ -141,34 +138,7 @@
 		       (+ *tlv-header-size*
 			  (tlv-length octets)))
 	       message
-	       offset)))))
-
-(defun decode-message (message)
-  (loop :with message-length = (message-length message)
-	:for offset = *message-header-size* :then next
-	:for next = (+ (next-word-boundary
-			(ub16ref/be message (+ offset 2)))
-		       *tlv-header-size*
-		       offset)
-	:collect (process-tlv (subseq message offset next) message offset)
-	:until (>= offset message-length)))
-
-(defun next-word-boundary (n)
-  "takes a length and rounds up to the nearest multiple of four"
-  (logandc2 (+ n #b11) #b11))
-
-(defun parse-ip-addr (addr)
-  "goal here take in vector or string representation of address return only vecters and type"
-  (etypecase addr
-    ((vector t 4) (list addr :ip4))
-    ((vector t 16) (list addr :ip6))
-    (string (if (find #\. addr)
-		(list (dotted-quad-to-vector-quad addr) :ip4)
-		(list (ipv6-host-to-vector addr) :ip6)))))
-
-(defmacro bytes (&rest bytes)
-  (with-gensyms (m-bytes)
-    `(let ((,m-bytes ',bytes))
-       (make-array (list (length ,m-bytes))
-		   :element-type '(unsigned-byte 8)
-		   :initial-contents ,m-bytes))))
+	       offset))
+	;; else attribute is unknown ; this case needs to be handled
+	;; (may be handle via the decode-attribute multi-method)
+	)))
