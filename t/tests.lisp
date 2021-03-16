@@ -119,3 +119,10 @@
 		    nil)))
     (is (equalp #(192 168 1 26) (first out-data)))
     (is (= 56264 (second out-data)))))
+
+(test is-attribute-required
+  "tests that attributes are required or not"
+  (is-true (cl-stun::requiredp #x000F))
+  (is-true (cl-stun::requiredp #x7FFF))
+  (is-false (cl-stun::requiredp #x8000))
+  (is-false (cl-stun::requiredp #x8003)))

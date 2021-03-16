@@ -29,9 +29,6 @@
   '((#x01 . :ip4)
     (#x02 . :ip6)))
 
-(defstruct stun-attribute
-  "structure for a stun message attribute")
-
 (defun tlv-type (buffer)
   (ub16ref/be buffer +tlv-type-offset+))
 
@@ -141,3 +138,7 @@
 	;; else attribute is unknown ; this case needs to be handled
 	;; (may be handle via the decode-attribute multi-method)
 	)))
+
+(declaim (inline requiredp))
+(defun requiredp (attribute-type-code)
+  (zerop (logandc1 #x7FFF attribute-type-code)))
