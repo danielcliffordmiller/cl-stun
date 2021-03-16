@@ -44,6 +44,21 @@
 
 (defvar *tlv-header-size* 4) ;; type and length fields are four bytes long
 
+(defvar *tlv-type-offset* 0)
+(defvar *tlv-length-offset* 2)
+
+(defun tlv-type (buffer)
+  (ub16ref/be buffer *tlv-type-offset*))
+
+(defun (setf tlv-type) (value buffer)
+  (setf (ub16ref/be buffer *tlv-type-offset*) value))
+
+(defun tlv-length (buffer)
+  (ub16ref/be buffer *tlv-length-offset*))
+
+(defun (setf tlv-length) (value buffer)
+  (setf (ub16ref/be buffer *tlv-length-offset*) value))
+
 (defmacro with-tlv-buffer ((buffer-name attribute-type length) &body body)
   "Macro to help create encoded attributes.
 
@@ -56,12 +71,8 @@
 			:element-type '(unsigned-byte 8)))
 	  (,attribute-code
 	    (car (rassoc ,attribute-type *attribute-types*))))
-      ;; atribute code takes the first 16 bits
-      (setf (ub16ref/be ,buffer-name 0) ,attribute-code)
-      ;; length is the next 16 bits, evaluated to be the
-      ;; length of the buffer created minus the Type and Length
-      ;; fields (which take up a total of 32 bits or 4 bytes)
-      (setf (ub16ref/be ,buffer-name 2) ,length)
+      (setf (tlv-type ,buffer-name) ,attribute-code)
+      (setf (tlv-length ,buffer-name) ,length)
       ,@body
       ,buffer-name)))
 
