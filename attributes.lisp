@@ -33,16 +33,16 @@
   "structure for a stun message attribute")
 
 (defun tlv-type (buffer)
-  (ub16ref/be buffer *tlv-type-offset*))
+  (ub16ref/be buffer +tlv-type-offset+))
 
 (defun (setf tlv-type) (value buffer)
-  (setf (ub16ref/be buffer *tlv-type-offset*) value))
+  (setf (ub16ref/be buffer +tlv-type-offset+) value))
 
 (defun tlv-length (buffer)
-  (ub16ref/be buffer *tlv-length-offset*))
+  (ub16ref/be buffer +tlv-length-offset+))
 
 (defun (setf tlv-length) (value buffer)
-  (setf (ub16ref/be buffer *tlv-length-offset*) value))
+  (setf (ub16ref/be buffer +tlv-length-offset+) value))
 
 (defmacro with-tlv-buffer ((buffer-name attribute-type length) &body body)
   "Macro to help create encoded attributes.
@@ -52,7 +52,7 @@
   (with-gensyms (attribute-code)
    `(let ((,buffer-name
 	    (make-array (list (next-word-boundary
-			       (+ ,length *tlv-header-size*)))
+			       (+ ,length +tlv-header-size+)))
 			:element-type '(unsigned-byte 8)))
 	  (,attribute-code
 	    (car (rassoc ,attribute-type *attribute-types*))))
@@ -134,8 +134,8 @@
 	      (decode-attribute
 	       attr
 	       (subseq octets
-		       *tlv-header-size*
-		       (+ *tlv-header-size*
+		       +tlv-header-size+
+		       (+ +tlv-header-size+
 			  (tlv-length octets)))
 	       message
 	       offset))

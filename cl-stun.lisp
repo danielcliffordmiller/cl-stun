@@ -94,7 +94,7 @@
 (defun encode-stun-message (stun-message)
   "turn a stun-message into a sequence of bytes"
   (declare (type stun-message stun-message))
-  (let ((header (make-array (list *message-header-size*)
+  (let ((header (make-array (list +message-header-size+)
 			    :element-type '(unsigned-byte 8)))
 	(message-type
 	  (encode-message-type
@@ -116,10 +116,10 @@
    :transaction-id (transaction-id message)
    :attributes
    (loop :with message-length = (message-length message)
-	 :for offset = *message-header-size* :then next
+	 :for offset = +message-header-size+ :then next
 	 :for next = (+ (next-word-boundary
 			 (ub16ref/be message (+ offset 2)))
-			*tlv-header-size*
+			+tlv-header-size+
 			offset)
 	 :collect (process-tlv (subseq message offset next) message offset)
 	 :until (>= offset message-length))))
@@ -128,44 +128,44 @@
 
 (defun message-type (buffer)
   (declare (type (vector (unsigned-byte 8)) buffer))
-  (ub16ref/be buffer *message-type-offset*))
+  (ub16ref/be buffer +message-type-offset+))
 
 (defun (setf message-type) (value buffer)
   (declare (type (vector (unsigned-byte 8)) buffer)
 	   (type (unsigned-byte 14) value))
-  (setf (ub16ref/be buffer *message-type-offset*) value))
+  (setf (ub16ref/be buffer +message-type-offset+) value))
 
 (defun message-length (buffer)
   (declare (type (simple-array (unsigned-byte 8)) buffer))
-  (ub16ref/be buffer *message-length-offset*))
+  (ub16ref/be buffer +message-length-offset+))
 
 (defun (setf message-length) (value buffer)
   (declare (type (vector (unsigned-byte 8)) buffer)
 	   (type (unsigned-byte 16) value))
-  (setf (ub16ref/be buffer *message-length-offset*) value))
+  (setf (ub16ref/be buffer +message-length-offset+) value))
 
 (defun magic-cookie (buffer)
   (declare (type (vector (unsigned-byte 8)) buffer))
   (subseq buffer
-	  *magic-cookie-offset*
-	  *magic-cookie-end*))
+	  +magic-cookie-offset+
+	  +magic-cookie-end+))
 
 (defun (setf magic-cookie) (value buffer)
   (declare (type (vector (unsigned-byte 8)) buffer)
 	   (type vector value))
   (setf (subseq buffer
-		*magic-cookie-offset*
-		*magic-cookie-end*) value))
+		+magic-cookie-offset+
+		+magic-cookie-end+) value))
 
 (defun transaction-id (buffer)
   (declare (type (vector (unsigned-byte 8)) buffer))
   (subseq buffer
-	  *transaction-id-offset*
-	  *transaction-id-end*))
+	  +transaction-id-offset+
+	  +transaction-id-end+))
 
 (defun (setf transaction-id) (value buffer)
   (declare (type (vector (unsigned-byte 8)) buffer)
 	   (type (vector (unsigned-byte 8)) value))
   (setf (subseq buffer
-		*transaction-id-offset*
-		*transaction-id-end*) value))
+		+transaction-id-offset+
+		+transaction-id-end+) value))
