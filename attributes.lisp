@@ -91,6 +91,56 @@
 	  (setf (ub16ref/be buffer 6) port)
 	  (setf (subseq buffer 8) addr))))))
 
+(defgeneric decode-attribute (type octets message offset)
+  (:documentation "Generic for decoding the attributes. Should be differentiated based on the type. Octets is the exact value of the attribute to decode, message is the full message octet buffer and offset is the place at which this attribute was found in the message buffer."))
+
+(defmethod decode-attribute
+    ((type (eql :mapped-address)) octets message offset)
+  "decode mapped-address"
+  (declare (ignore message offset))
+  (list
+   (subseq octets 4)
+   (ub16ref/be octets 2)))
+
+(defmethod decode-attribute
+    ((type (eql :error-code)) octets message offset)
+  "decode error-code"
+  (declare (ignore message offset))
+  (list (+ (* (elt octets 2) 100)
+	   (elt octets 3))
+	(octets-to-string (subseq octets 4)
+			  :external-format :utf8)))
+
+(defmethod decode-attribute
+    ((type (eql :unknown-attributes)) octets message offset)
+  "decode unknown-attributes"
+  (declare (ignore message offset))
+  (loop :for i :below (length octets):by 2
+	:collect (ub16ref/be octets i)))
+
+(defmethod decode-attribute
+    ((type (eql :software)) octets message offset)
+  "decode software attribute"
+  (declare (ignore message offset))
+  (octets-to-string octets :external-format :utf8))
+
+(defmethod decode-attribute
+    ((type (eql :xor-mapped-address)) octets message offset)
+  "decode xor-mapped address attribute"
+  (list
+   (logxor (ub16ref/be message *magic-cookie-offset*)
+	   (ub16ref/be octets 2))
+   (loop :with dest = (subseq octets 4)
+	 :for i :below (length dest)
+	 :do (setf
+	      (elt dest i)
+	      (logxor
+	       (elt dest i)
+	       (elt message (+ *magic-cookie-offset* i))))
+	 :finally (return dest))))
+
+(defun process-tlv (octets message offset)
+  ())
 (defun scan-for-attributes (buffer)
   (loop :with message-length = (message-length buffer)
 	:for offset = *message-header-size*
@@ -114,3 +164,10 @@
     (string (if (find #\. addr)
 		(list (dotted-quad-to-vector-quad addr) :ip4)
 		(list (ipv6-host-to-vector addr) :ip6)))))
+
+(defmacro bytes (&rest bytes)
+  (with-gensyms (m-bytes)
+    `(let ((,m-bytes ',bytes))
+       (make-array (list (length ,m-bytes))
+		   :element-type '(unsigned-byte 8)
+		   :initial-contents ,m-bytes))))

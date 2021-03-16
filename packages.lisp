@@ -10,6 +10,7 @@
   (:export
    #:decompose-message-type
    #:compose-message-type
-   #:make-stun-message)
+   #:make-stun-message
+   #:bytes)
   (:shadow
    #:xor))
