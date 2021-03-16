@@ -112,17 +112,21 @@
     header))
 
 (defun decode-message (message)
-  (make-stun-message
-   :transaction-id (transaction-id message)
-   :attributes
-   (loop :with message-length = (message-length message)
-	 :for offset = +message-header-size+ :then next
-	 :for next = (+ (next-word-boundary
-			 (ub16ref/be message (+ offset 2)))
-			+tlv-header-size+
-			offset)
-	 :collect (process-tlv (subseq message offset next) message offset)
-	 :until (>= offset message-length))))
+  (destructuring-bind (method-type class-type)
+      (decode-message-type (message-type message))
+    (make-stun-message
+     :transaction-id (transaction-id message)
+     :method-type method-type
+     :class-type class-type
+     :attributes
+     (loop :with message-length = (message-length message)
+	   :for offset = +message-header-size+ :then next
+	   :for next = (+ (next-word-boundary
+			   (ub16ref/be message (+ offset 2)))
+			  +tlv-header-size+
+			  offset)
+	   :collect (process-tlv (subseq message offset next) message offset)
+	   :until (>= next message-length)))))
 
 ;; buffer utils
 
@@ -169,3 +173,22 @@
   (setf (subseq buffer
 		+transaction-id-offset+
 		+transaction-id-end+) value))
+
+;;;; just for fun!
+
+(defvar *a*
+  (make-array '(576)
+	      :element-type (unsigned-byte 8)))
+
+(defun bind-request (host &optional (port 3478))
+  (let ((s (socket-connect host port :protocol :datagram)))
+    (socket-send s (encode-stun-message (make-stun-message)) nil)
+    (socket-receive s *a* nil)
+    (socket-close s)
+    (decode-message *a*)))
+
+(defun print-buffer ()
+  (loop :for i :below (+ +message-header-size+
+			 (message-length *a*)) :by 4
+	:do (format t "~{#x~2,'0X ~}~%"
+		    (concatenate 'list (subseq *a* i (+ i 4))))))

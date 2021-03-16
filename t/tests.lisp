@@ -50,7 +50,7 @@
   (let* ((ip-address #(192 168 1 101))
 	 (port 80)
 	 (buf-res (cl-stun::encode-attribute
-		   '() :mapped-address (list
+		   :mapped-address '() (list
 					ip-address
 					port))))
     ;; check length reported is 8 bytes

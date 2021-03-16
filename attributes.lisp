@@ -61,10 +61,10 @@
       ,@body
       ,buffer-name)))
 
-(defgeneric encode-attribute (octets type args)
+(defgeneric encode-attribute (type octets args)
   (:documentation "This is a mechanism by which the different attributes are turned to sequences of octets"))
 
-(defmethod encode-attribute (octets (type (eql :mapped-address)) args)
+(defmethod encode-attribute ((type (eql :mapped-address)) octets args)
   "render mapped address attribute"
   (declare (ignore octets))
   (assert (eql type :mapped-address))
@@ -128,17 +128,16 @@
   ;; takes in a buffer that consists of a tlv and will
   ;; look up the attribute and try to decode it
   (let ((attr (cdr (assoc (tlv-type octets)
-			  *attribute-types*))))
-    (if attr
+			  *attribute-types*)))
+	(value-octets (subseq octets
+			      +tlv-header-size+
+			      (+ +tlv-header-size+
+				 (tlv-length octets)))))
+    (if (and attr
+	     (not (eql attr :reserved)))
 	(cons attr
-	      (decode-attribute
-	       attr
-	       (subseq octets
-		       +tlv-header-size+
-		       (+ +tlv-header-size+
-			  (tlv-length octets)))
-	       message
-	       offset))
+	      (decode-attribute attr value-octets message offset))
+	(cons (tlv-type octets) value-octets)
 	;; else attribute is unknown ; this case needs to be handled
 	;; (may be handle via the decode-attribute multi-method)
 	)))
