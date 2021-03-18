@@ -16,13 +16,16 @@
     (#x0014 . :realm)
     (#x0015 . :nonce)
     (#x0020 . :xor-mapped-address)
+
     (#x8022 . :software)
     (#x8023 . :alternate-server)
     (#x8028 . :fingerprint)
 
+
     (#x001C . :message-integrity-sha256)
     (#x001D . :password-algorithm)
     (#x001E . :userhash)
+
     (#x8002 . :password-algorithms)
     (#x8003 . :alternate-domain)))
 
@@ -31,6 +34,11 @@
     (#x02 . :ip6)))
 
 (defvar *fingerprint-xor* #x5354554E)
+
+(defvar *password-algorithms*
+  '((#x00 . :reserved)
+    (#x01 . :md5)
+    (#x02 . :sha256)))
 
 (defun tlv-type (buffer &optional (offset 0))
   (ub16ref/be buffer (+ offset +tlv-type-offset+)))
@@ -97,6 +105,19 @@
       (setf (ub32ref/be buffer +tlv-header-size+)
 	    (logxor *fingerprint-xor*
 		    (octets-to-integer (produce-digest digest)))))))
+
+(defmethod encode-attribute ((type (eql :username)) octets args)
+  (declare (ignore octets))
+  (let ((value (string-to-octets (opaque-string args))))
+    ;; TODO: check length of username
+    (with-tlv-buffer (buffer type (length value))
+      (setf (subseq buffer +tlv-header-size+) value))))
+
+(defmethod encode-attribute ((type (eql :password-algorithm)) octets args)
+  (declare (ignore octets))
+  (let ((pa-code (car (rassoc args *password-algorithms*))))
+    (with-tlv-buffer (buffer :password-algorithm 4)
+      (setf (ub16ref/be buffer +tlv-header-size+) pa-code))))
 
 (defgeneric decode-attribute (type octets message offset)
   (:documentation "Generic for decoding the attributes. Should be differentiated based on the type. Octets is the exact value of the attribute to decode, message is the full message octet buffer and offset is the place at which this attribute was found in the message buffer."))
