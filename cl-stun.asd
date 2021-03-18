@@ -2,6 +2,7 @@
 (defsystem "cl-stun"
   :description "library to implement the STUN protocol as defined in RFC8489"
   :author "Dan Miller <danielcliffordmiller@gmail.com>"
+  :version "0.0.9"
   :depends-on (:usocket :alexandria :ironclad :flexi-streams)
   :serial t
   :components ((:file "packages")
