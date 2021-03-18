@@ -19,6 +19,7 @@
     (#x8022 . :software)
     (#x8023 . :alternate-server)
     (#x8028 . :fingerprint)
+
     (#x001C . :message-integrity-sha256)
     (#x001D . :password-algorithm)
     (#x001E . :userhash)
@@ -28,6 +29,8 @@
 (defvar *address-families*
   '((#x01 . :ip4)
     (#x02 . :ip6)))
+
+(defvar *fingerprint-xor* #x5354554E)
 
 (defun tlv-type (buffer &optional (offset 0))
   (ub16ref/be buffer (+ offset +tlv-type-offset+)))
@@ -79,6 +82,19 @@
   (let ((data (string-to-octets args)))
     (with-tlv-buffer (buffer type (length data))
       (setf (subseq buffer +tlv-header-size+) data))))
+
+(defmethod encode-attribute ((type (eql :fingerprint)) octets args)
+  (declare (ignore args)) ;; not sure this is the best way to handle this
+  (incf (message-length (car octets))
+	(+ 4 ; CRC32 size
+	   +tlv-header-size+))
+  (with-tlv-buffer (buffer type 4)
+    (let ((digest (make-digest :crc32)))
+      (dolist (seq octets)
+	(update-digest digest seq))
+      (setf (ub32ref/be buffer +tlv-header-size+)
+	    (logxor *fingerprint-xor*
+		    (ub32ref/be (produce-digest digest) 0))))))
 
 (defgeneric decode-attribute (type octets message offset)
   (:documentation "Generic for decoding the attributes. Should be differentiated based on the type. Octets is the exact value of the attribute to decode, message is the full message octet buffer and offset is the place at which this attribute was found in the message buffer."))
@@ -169,7 +185,9 @@
   "given a message buffer, returns an a-list for the offsets and attribute type codes"
   (labels
       ((scan-helper (offset acc)
-	 (if (= offset (length buffer))
+	 (if (= offset
+		(+ (message-length buffer)
+		   +message-header-size+))
 	     (nreverse acc)
 	     (let ((tlv-end-offset
 		     (+ offset

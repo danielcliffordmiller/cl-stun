@@ -130,7 +130,6 @@
 	 (buffer (make-array (list size) :element-type '(unsigned-byte 8))))
     (loop :for seq :in seqs
 	  :and offset = 0 :then (+ offset (length seq))
-	  :do (format t "~a~%" offset)
 	  :do (setf (subseq buffer offset) seq))
     buffer))
 
