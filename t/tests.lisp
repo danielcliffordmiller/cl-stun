@@ -30,7 +30,14 @@
 (test looks-like-stun-message
   "does it look like a stun message"
   (is-true (cl-stun::looks-like-stun-message
-	    (cl-stun::encode-stun-message (make-stun-message)))))
+	    (cl-stun::encode-stun-message (make-stun-message))))
+  (is-true (cl-stun::looks-like-stun-message
+	    (cl-stun::encode-stun-message
+	     (make-stun-message :attributes '((:fingerprint t))))))
+  (let ((message (cl-stun::encode-stun-message
+  		  (make-stun-message :attributes '((:fingerprint t))))))
+    (incf (elt message (random (length message))) 4)
+    (is-false (cl-stun::looks-like-stun-message message))))
 
 (test ip-address-parsing
   "test that we can determine different sorts of ip addresses"

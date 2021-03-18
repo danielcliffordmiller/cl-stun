@@ -88,8 +88,17 @@
        ;; 3: The last two bits of the message length field should be 0x00
        (zerop (ldb (byte 2 0) (elt byte-sequence 3)))
        ;; 4: (optionally) a FIGNERPRINT attribute
-       ;; TODO: check the fingerprint attribute
-       ))
+       (let ((last-attr (car (last (scan-for-attributes byte-sequence))))
+	     (fingerprint-code (car (rassoc :fingerprint *attribute-types*))))
+	 (if (eql (car last-attr) fingerprint-code)
+	     (decode-attribute
+	      :fingerprint
+	      (subseq byte-sequence
+		      (+ (second last-attr) +tlv-header-size+)
+		      (third last-attr))
+	      byte-sequence
+	      (second last-attr))
+	     t))))
 
 (defun encode-stun-message (stun-message)
   "turn a stun-message into a sequence of bytes"

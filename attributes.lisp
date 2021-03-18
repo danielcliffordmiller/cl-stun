@@ -85,16 +85,18 @@
 
 (defmethod encode-attribute ((type (eql :fingerprint)) octets args)
   (declare (ignore args)) ;; not sure this is the best way to handle this
-  (incf (message-length (car octets))
-	(+ 4 ; CRC32 size
-	   +tlv-header-size+))
+  (setf (message-length (car octets))
+	(- (+ (reduce #'+ octets :key #'length :initial-value 0)
+	      4 ;; CRC32 size
+	      +tlv-header-size+)
+	   +message-header-size+))
   (with-tlv-buffer (buffer type 4)
     (let ((digest (make-digest :crc32)))
       (dolist (seq octets)
 	(update-digest digest seq))
       (setf (ub32ref/be buffer +tlv-header-size+)
 	    (logxor *fingerprint-xor*
-		    (ub32ref/be (produce-digest digest) 0))))))
+		    (octets-to-integer (produce-digest digest)))))))
 
 (defgeneric decode-attribute (type octets message offset)
   (:documentation "Generic for decoding the attributes. Should be differentiated based on the type. Octets is the exact value of the attribute to decode, message is the full message octet buffer and offset is the place at which this attribute was found in the message buffer."))
@@ -174,12 +176,21 @@
    (subseq octets 4)
    (ub16ref/be octets 2)))
 
-(defmethod decode-attrbute
+(defmethod decode-attribute
     ((type (eql :alternate-domain)) octets message offset)
   "decode alternate-domain"
   ;; TODO: check that dns name is less than 255 chars
   (declare (ignore message offset))
   (octets-to-string octets :external-format :us-ascii))
+
+(defmethod decode-attribute
+    ((type (eql :fingerprint)) octets message offset)
+  "decode fingerprint"
+  (= (logxor
+      *fingerprint-xor*
+      (octets-to-integer (digest-sequence :crc32 (subseq message 0 offset))))
+     (octets-to-integer octets)))
+
 
 (defun scan-for-attributes (buffer)
   "given a message buffer, returns an a-list for the offsets and attribute type codes"
