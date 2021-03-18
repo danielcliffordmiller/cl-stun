@@ -126,3 +126,22 @@
   (is-true (cl-stun::requiredp #x7FFF))
   (is-false (cl-stun::requiredp #x8000))
   (is-false (cl-stun::requiredp #x8003)))
+
+(test decode-username-attribute
+  "tests username attribute"
+  (let* ((username "dantheman")
+	 (in-data (flexi-streams:string-to-octets username))
+	 (out-data (cl-stun::decode-attribute
+		    :username
+		    in-data
+		    nil
+		    nil)))
+    (is (string= username out-data))))
+
+(test alternate-server-attribute
+  "tests the decoding of the alternate service attribute"
+  (let* ((in-data (bytes 0 1 0 80 192 168 1 102))
+	 (out-data (cl-stun::decode-attribute
+		    :alternate-server in-data nil nil)))
+    (is (equalp #(192 168 1 102) (first out-data)))
+    (is (= 80 (second out-data)))))

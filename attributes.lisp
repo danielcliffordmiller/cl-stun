@@ -73,6 +73,13 @@
 	  (setf (ub16ref/be buffer 6) port)
 	  (setf (subseq buffer 8) addr))))))
 
+(defmethod encode-attribute ((type (eql :software)) octets args)
+  "render software attribute"
+  (declare (ignore octets))
+  (let ((data (string-to-octets args)))
+    (with-tlv-buffer (buffer type (length data))
+      (setf (subseq buffer +tlv-header-size+) data))))
+
 (defgeneric decode-attribute (type octets message offset)
   (:documentation "Generic for decoding the attributes. Should be differentiated based on the type. Octets is the exact value of the attribute to decode, message is the full message octet buffer and offset is the place at which this attribute was found in the message buffer."))
 
@@ -100,6 +107,7 @@
   (loop :for i :below (length octets):by 2
 	:collect (ub16ref/be octets i)))
 
+;; TODO: value should not be more than 763 bytes when decoding
 (defmethod decode-attribute
     ((type (eql :software)) octets message offset)
   "decode software attribute"
@@ -121,6 +129,42 @@
    (logxor (ub16ref/be message +magic-cookie-offset+)
 	   (ub16ref/be octets 2))))
 
+;; TODO: value should not be more than 763 bytes when decoding
+(defmethod decode-attribute
+    ((type (eql :username)) octets message offset)
+  "decode username attrbute"
+  (declare (ignore message offset))
+  (octets-to-string octets :external-format :utf8))
+
+(defmethod decode-attribute
+    ((type (eql :userhash)) octets message offset)
+  "\"decode\" userhash"
+  (declare (ignore message offset))
+  octets)
+
+;; TODO: value should not be more than 763 bytes when decoding
+(defmethod decode-attribute
+    ((type (eql :realm)) octets message offset)
+  "decode realm attrbute"
+  (declare (ignore message offset))
+  (octets-to-string octets :external-format :utf8))
+
+(defmethod decode-attribute
+    ((type (eql :alternate-server)) octets message offset)
+  "decode alternate-server"
+  ;; same as mapped address
+  (declare (ignore message offset))
+  (list
+   (subseq octets 4)
+   (ub16ref/be octets 2)))
+
+(defmethod decode-attrbute
+    ((type (eql :alternate-domain)) octets message offset)
+  "decode alternate-domain"
+  ;; TODO: check that dns name is less than 255 chars
+  (declare (ignore message offset))
+  (octets-to-string octets :external-format :us-ascii))
+
 (defun process-tlv (octets message offset)
   ;; takes in a buffer that consists of a tlv and will
   ;; look up the attribute and try to decode it
@@ -138,6 +182,11 @@
 	;; else attribute is unknown ; this case needs to be handled
 	;; (may be handle via the decode-attribute multi-method)
 	)))
+
+(defun opaque-string (string)
+  "implements the unicode opaque string profile"
+  ;; TODO: have an actual implementation
+  string)
 
 (declaim (inline requiredp))
 (defun requiredp (attribute-type-code)
