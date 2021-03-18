@@ -69,6 +69,14 @@
       ,@body
       ,buffer-name)))
 
+(defmacro set-message-length-from-octets (buffer octets size)
+  "helper macro for those encoders that set the message length for some calculations"
+  `(setf (message-length ,buffer)
+         (- (+ (reduce #'+ ,octets :key #'length :initial-value 0)
+               ,size
+               +tlv-header-size+)
+            +message-header-size+)))
+
 (defgeneric encode-attribute (type octets args)
   (:documentation "This is a mechanism by which the different attributes are turned to sequences of octets"))
 
@@ -109,11 +117,7 @@
 
 (defmethod encode-attribute ((type (eql :fingerprint)) octets args)
   (declare (ignore args)) ;; not sure this is the best way to handle this
-  (setf (message-length (car octets))
-	(- (+ (reduce #'+ octets :key #'length :initial-value 0)
-	      4 ;; CRC32 size
-	      +tlv-header-size+)
-	   +message-header-size+))
+  (set-message-length-from-octets (car octets) octets 4)
   (with-tlv-buffer (buffer type 4)
     (let ((digest (make-digest :crc32)))
       (dolist (seq octets)
@@ -149,6 +153,16 @@
 					    +tlv-header-size+))
 		      (elt pa-codes i))))))
 
+(defmethod encode-attribute ((type (eql :message-integrity)) octets args)
+  (set-message-length-from-octets (car octets) octets 20)
+  (with-tlv-buffer (buffer type 20)
+    (let* ((key (string-to-octets (opaque-string (car args))))
+           (hmac (make-hmac key :sha1)))
+      (dolist (seq octets)
+        (update-hmac hmac seq))
+      (let ((digest (hmac-digest hmac)))
+        (setf (subseq buffer +tlv-header-size+) digest)))))
+
 (defgeneric decode-attribute (type octets message offset)
   (:documentation "Generic for decoding the attributes. Should be differentiated based on the type. Octets is the exact value of the attribute to decode, message is the full message octet buffer and offset is the place at which this attribute was found in the message buffer."))
 
@@ -177,7 +191,7 @@
     ((type (eql :unknown-attributes)) octets message offset)
   "decode unknown-attributes"
   (declare (ignore message offset))
-  (loop :for i :below (length octets):by 2
+  (loop :for i :below (length octets) :by 2
 	:collect (ub16ref/be octets i)))
 
 ;; TODO: value should not be more than 763 bytes when decoding
@@ -274,7 +288,7 @@
         (if (eql (cdr assoc) :reserved)
             code
             (cdr assoc))
-      code)))
+        code)))
 
 (defun opaque-string (string)
   "implements the unicode opaque string profile"
