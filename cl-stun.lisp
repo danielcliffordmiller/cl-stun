@@ -108,26 +108,46 @@
     ;; set transaction-id
     (setf (transaction-id header)
 	  (stun-message-transaction-id stun-message))
-    ;; TODO: write out the attributes
-    header))
 
-(defun decode-message (message)
+    (loop :with buffers = (list header)
+	  :for attribute :in (stun-message-attributes stun-message)
+	  :do (appendf buffers
+		       (list
+			(encode-attribute (car attribute)
+					  buffers
+					  (cdr attribute))))
+	  :finally
+	     (return
+	       (let* ((result (join-sequences buffers)))
+		 (setf (message-length result)
+		       (- (length result)
+			  +message-header-size+))
+		 result)))))
+
+(defun join-sequences (seqs)
+  "utility to join sequences"
+  (let* ((size (reduce #'+ seqs :key #'length :initial-value 0))
+	 (buffer (make-array (list size) :element-type '(unsigned-byte 8))))
+    (loop :for seq :in seqs
+	  :and offset = 0 :then (+ offset (length seq))
+	  :do (format t "~a~%" offset)
+	  :do (setf (subseq buffer offset) seq))
+    buffer))
+
+(defun decode-message (buffer)
   (destructuring-bind (method-type class-type)
-      (decode-message-type (message-type message))
+      (decode-message-type (message-type buffer))
     (make-stun-message
-     :transaction-id (transaction-id message)
+     :transaction-id (transaction-id buffer)
      :method-type method-type
      :class-type class-type
      :attributes
-     (loop :with message-length = (+ (message-length message)
-                                     +message-header-size+)
-	   :for offset = +message-header-size+ :then next
-	   :for next = (+ (next-word-boundary
-			   (ub16ref/be message (+ offset 2)))
-			  +tlv-header-size+
-			  offset)
-	   :collect (process-tlv (subseq message offset next) message offset)
-	   :until (>= next message-length)))))
+     (mapcar
+      #'(lambda (tlv-data)
+	  (process-tlv (apply #'subseq (cons buffer (cdr tlv-data)))
+		       buffer
+		       (second tlv-data)))
+      (scan-for-attributes buffer)))))
 
 ;; buffer utils
 

@@ -29,17 +29,17 @@
   '((#x01 . :ip4)
     (#x02 . :ip6)))
 
-(defun tlv-type (buffer)
-  (ub16ref/be buffer +tlv-type-offset+))
+(defun tlv-type (buffer &optional (offset 0))
+  (ub16ref/be buffer (+ offset +tlv-type-offset+)))
 
-(defun (setf tlv-type) (value buffer)
-  (setf (ub16ref/be buffer +tlv-type-offset+) value))
+(defun (setf tlv-type) (value buffer &optional (offset 0))
+  (setf (ub16ref/be buffer (+ offset +tlv-type-offset+)) value))
 
-(defun tlv-length (buffer)
-  (ub16ref/be buffer +tlv-length-offset+))
+(defun tlv-length (buffer &optional (offset 0))
+  (ub16ref/be buffer (+ offset +tlv-length-offset+)))
 
-(defun (setf tlv-length) (value buffer)
-  (setf (ub16ref/be buffer +tlv-length-offset+) value))
+(defun (setf tlv-length) (value buffer &optional (offset 0))
+  (setf (ub16ref/be buffer (+ offset +tlv-length-offset+)) value))
 
 (defmacro with-tlv-buffer ((buffer-name attribute-type length) &body body)
   "Macro to help create encoded attributes.
@@ -164,6 +164,25 @@
   ;; TODO: check that dns name is less than 255 chars
   (declare (ignore message offset))
   (octets-to-string octets :external-format :us-ascii))
+
+(defun scan-for-attributes (buffer)
+  "given a message buffer, returns an a-list for the offsets and attribute type codes"
+  (labels
+      ((scan-helper (offset acc)
+	 (if (= offset (length buffer))
+	     (nreverse acc)
+	     (let ((tlv-end-offset
+		     (+ offset
+			+tlv-header-size+
+			(tlv-length buffer offset))))
+	       (scan-helper
+		(next-word-boundary tlv-end-offset)
+		(cons
+		 (list (tlv-type buffer offset)
+		       offset
+		       tlv-end-offset)
+		 acc))))))
+    (scan-helper +message-header-size+ nil)))
 
 (defun process-tlv (octets message offset)
   ;; takes in a buffer that consists of a tlv and will
