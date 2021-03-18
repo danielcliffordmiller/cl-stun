@@ -3,7 +3,13 @@
 
 (defpackage cl-stun.samples
   (:use :cl :cl-stun)
-  (:export #:*error* #:*res-mapped* #:*res-xor-mapped*))
+  (:export
+   #:*error*
+   #:*res-mapped*
+   #:*res-xor-mapped*
+   #:*callwithus-res*
+   #:*counterpath-res*
+   #:*dcalling-res*))
 
 (in-package :cl-stun.samples)
 

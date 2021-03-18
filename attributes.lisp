@@ -152,6 +152,10 @@
 (defgeneric decode-attribute (type octets message offset)
   (:documentation "Generic for decoding the attributes. Should be differentiated based on the type. Octets is the exact value of the attribute to decode, message is the full message octet buffer and offset is the place at which this attribute was found in the message buffer."))
 
+(defmethod decode-attribute (type octets message offset)
+  "catch all decoder"
+  octets)
+
 (defmethod decode-attribute
     ((type (eql :mapped-address)) octets message offset)
   "decode mapped-address"
@@ -242,7 +246,6 @@
       (octets-to-integer (digest-sequence :crc32 (subseq message 0 offset))))
      (octets-to-integer octets)))
 
-
 (defun scan-for-attributes (buffer)
   "given a message buffer, returns an a-list for the offsets and attribute type codes"
   (labels
@@ -258,29 +261,20 @@
 	       (scan-helper
 		(next-word-boundary tlv-end-offset)
 		(cons
-		 (list (tlv-type buffer offset)
+		 (list (lookup-attribute-type (tlv-type buffer offset))
 		       offset
 		       tlv-end-offset)
 		 acc))))))
     (scan-helper +message-header-size+ nil)))
 
-(defun process-tlv (octets message offset)
-  ;; takes in a buffer that consists of a tlv and will
-  ;; look up the attribute and try to decode it
-  (let ((attr (cdr (assoc (tlv-type octets)
-			  *attribute-types*)))
-	(value-octets (subseq octets
-			      +tlv-header-size+
-			      (+ +tlv-header-size+
-				 (tlv-length octets)))))
-    (if (and attr
-	     (not (eql attr :reserved)))
-	(cons attr
-	      (decode-attribute attr value-octets message offset))
-	(cons (tlv-type octets) value-octets)
-	;; else attribute is unknown ; this case needs to be handled
-	;; (may be handle via the decode-attribute multi-method)
-	)))
+(defun lookup-attribute-type (code)
+  "lookup attribute and return the keyword if recognized, else return the code unchanged"
+  (let ((assoc (assoc code *attribute-types*)))
+    (if assoc
+        (if (eql (cdr assoc) :reserved)
+            code
+            (cdr assoc))
+      code)))
 
 (defun opaque-string (string)
   "implements the unicode opaque string profile"

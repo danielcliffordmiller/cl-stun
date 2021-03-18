@@ -88,9 +88,8 @@
        ;; 3: The last two bits of the message length field should be 0x00
        (zerop (ldb (byte 2 0) (elt byte-sequence 3)))
        ;; 4: (optionally) a FIGNERPRINT attribute
-       (let ((last-attr (car (last (scan-for-attributes byte-sequence))))
-	     (fingerprint-code (car (rassoc :fingerprint *attribute-types*))))
-	 (if (eql (car last-attr) fingerprint-code)
+       (let ((last-attr (car (last (scan-for-attributes byte-sequence)))))
+	 (if (eql (car last-attr) :fingerprint)
 	     (decode-attribute
 	      :fingerprint
 	      (subseq byte-sequence
@@ -152,9 +151,16 @@
      :attributes
      (mapcar
       #'(lambda (tlv-data)
-	  (process-tlv (apply #'subseq (cons buffer (cdr tlv-data)))
-		       buffer
-		       (second tlv-data)))
+          (cons
+           (car tlv-data)
+	   (decode-attribute
+            (car tlv-data)
+            (funcall #'subseq
+                     buffer
+                     (+ +tlv-header-size+ (second tlv-data))
+                     (third tlv-data))
+	    buffer
+	    (second tlv-data))))
       (scan-for-attributes buffer)))))
 
 ;; buffer utils
