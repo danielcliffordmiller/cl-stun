@@ -10,8 +10,8 @@
 (defun parse-ip-addr (addr)
   "goal here take in vector or string representation of address return only vecters and type"
   (etypecase addr
-    ((vector t 4) (list addr :ip4))
-    ((vector t 16) (list addr :ip6))
+    ((vector * 4) (list addr :ip4))
+    ((vector * 16) (list addr :ip6))
     (string (if (find #\. addr)
 		(list (dotted-quad-to-vector-quad addr) :ip4)
 		(list (ipv6-host-to-vector addr) :ip6)))))

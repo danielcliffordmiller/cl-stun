@@ -1,6 +1,6 @@
 (in-package :cl-stun)
 
-(defvar *magic-cookie* #(#x21 #x12 #xA4 #x42))
+(defvar *magic-cookie* (bytes #x21 #x12 #xA4 #x42))
 
 ;;; these masks are defined as a list of byte-specs concerning
 ;;; the bits of interest for unpacking
