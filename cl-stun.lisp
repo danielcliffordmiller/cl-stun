@@ -211,19 +211,37 @@
 
 ;;;; just for fun!
 
-(defvar *a*
+(defvar *buffer*
   (make-array '(576)
 	      :element-type '(unsigned-byte 8)))
 
 (defun bind-request (host &optional (port 3478))
   (let ((s (socket-connect host port :protocol :datagram)))
     (socket-send s (encode-stun-message (make-stun-message)) nil)
-    (socket-receive s *a* nil)
+    (socket-receive s *buffer* nil)
     (socket-close s)
-    (decode-message *a*)))
+    (decode-message *buffer*)))
 
 (defun print-buffer ()
   (loop :for i :below (+ +message-header-size+
-			 (message-length *a*)) :by 4
+			 (message-length *buffer*)) :by 4
 	:do (format t "~{#x~2,'0X ~}~%"
-		    (concatenate 'list (subseq *a* i (+ i 4))))))
+		    (concatenate 'list (subseq *buffer* i (+ i 4))))))
+
+(defun run-simple-server (&optional (port 3478))
+  (let ((socket (socket-connect nil nil :protocol :datagram :local-port port)))
+    (unwind-protect
+     (loop
+       (multiple-value-bind (buffer length request-addr request-port)
+           (socket-receive socket *buffer* nil)
+         (declare (ignore buffer length))
+         (let ((message (decode-message *buffer*)))
+           (socket-send socket
+                        (encode-stun-message
+                         (make-stun-message :transaction-id (stun-message-transaction-id message)
+                                            :class-type :success-response
+                                            :attributes `((:xor-mapped-address ,request-addr ,request-port))))
+                        nil
+                        :host request-addr
+                        :port request-port))))
+      (socket-close socket))))
