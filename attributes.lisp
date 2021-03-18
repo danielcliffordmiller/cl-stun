@@ -113,11 +113,25 @@
     (with-tlv-buffer (buffer type (length value))
       (setf (subseq buffer +tlv-header-size+) value))))
 
+;; TODO: add support for algorithm parameters
 (defmethod encode-attribute ((type (eql :password-algorithm)) octets args)
   (declare (ignore octets))
   (let ((pa-code (car (rassoc args *password-algorithms*))))
     (with-tlv-buffer (buffer :password-algorithm 4)
       (setf (ub16ref/be buffer +tlv-header-size+) pa-code))))
+
+;; TODO: add support for algorithm parameters
+(defmethod encode-attribute ((type (eql :password-algorithms)) octets args)
+  (declare (ignore octets))
+  (let* ((pa-codes (mapcar #'(lambda (pa)
+			       (car (rassoc pa *password-algorithms*)))
+			   args))
+	 (num-algorithms (length pa-codes)))
+    (with-tlv-buffer (buffer :password-algorithms (* 4 num-algorithms))
+      (loop :for i :below num-algorithms
+	    :do (setf (ub16ref/be buffer (+ (* i 4)
+					    +tlv-header-size+))
+		      (elt pa-codes i))))))
 
 (defgeneric decode-attribute (type octets message offset)
   (:documentation "Generic for decoding the attributes. Should be differentiated based on the type. Octets is the exact value of the attribute to decode, message is the full message octet buffer and offset is the place at which this attribute was found in the message buffer."))
