@@ -78,11 +78,27 @@
   (assert (eql type :mapped-address))
   (destructuring-bind (ip-addr port) args
     (destructuring-bind (addr family) (parse-ip-addr ip-addr)
-      (let ((buffer-size (case family (:ip4 8) (:ip6 20))))
-	(with-tlv-buffer (buffer type buffer-size)
-	  (setf (elt buffer 5) (car (rassoc family *address-families*)))
-	  (setf (ub16ref/be buffer 6) port)
-	  (setf (subseq buffer 8) addr))))))
+      (with-tlv-buffer (buffer type (+ +tlv-header-size+
+				       (length addr)))
+	(setf (elt buffer 5) (car (rassoc family *address-families*)))
+	(setf (ub16ref/be buffer 6) port)
+	(setf (subseq buffer 8) addr)))))
+
+(defmethod encode-attribute ((type (eql :xor-mapped-address)) octets args)
+  "render mapped address attribute"
+  (destructuring-bind (ip-addr port) args
+    (destructuring-bind (addr family) (parse-ip-addr ip-addr)
+      (with-tlv-buffer (buffer type (+ +tlv-header-size+
+				       (length addr)))
+	(setf (elt buffer 5) (car (rassoc family *address-families*)))
+	(setf (ub16ref/be buffer 6)
+	      (logxor (ub16ref/be *magic-cookie* 0)
+		      port))
+	(dotimes (i (length addr))
+	  (setf (elt buffer (+ +tlv-header-size+ 4 i))
+		(logxor (elt addr i)
+			(elt (car octets)
+			     (+ +magic-cookie-offset+ i)))))))))
 
 (defmethod encode-attribute ((type (eql :software)) octets args)
   "render software attribute"
