@@ -160,6 +160,12 @@
     (with-tlv-buffer (buffer :password-algorithm 4)
       (setf (ub16ref/be buffer +tlv-header-size+) pa-code))))
 
+(defmethod encode-attribute ((type (eql :realm)) l-octets args)
+  (declare (ignore l-octets))
+  (let ((value (string-to-octets (car args))))
+    (with-tlv-buffer (buffer type (length value))
+      (setf (subseq buffer +tlv-header-size+) value))))
+
 ;; TODO: add support for algorithm parameters
 (defmethod encode-attribute ((type (eql :password-algorithms)) l-octets args)
   (declare (ignore l-octets))
@@ -176,7 +182,18 @@
 (defmethod encode-attribute ((type (eql :message-integrity)) l-octets args)
   (set-message-length-from-octets (car l-octets) l-octets 20)
   (with-tlv-buffer (buffer type 20)
-    (let* ((key (string-to-octets (opaque-string (car args))))
+    (let* ((key (cond
+                  ((typep (car args) '(simple-array (unsigned-byte 8)))
+                   (car args))
+                  ((= 1 (length args)) (string-to-octets (opaque-string (car args))))
+                  ((= 3 (length args))
+                   (digest-sequence
+                    :md5
+                    (string-to-octets
+                     (format nil "~@{~a~^:~}"
+                             (first args)
+                             (opaque-string (second args))
+                             (opaque-string (third args))))))))
            (hmac (make-hmac key :sha1)))
       (dolist (seq l-octets)
         (update-hmac hmac seq))
