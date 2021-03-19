@@ -76,10 +76,7 @@
          (out-data (encode-attribute :software nil (list test-string))))
     (is (string= test-string
                  (octets-to-string
-                  (subseq out-data
-                          cl-stun::+tlv-header-size+
-                          (+ (length test-string) ;; this only works under UTF-8 on ASCII !
-                             cl-stun::+tlv-header-size+)))))))
+                  (tlv-value out-data))))))
 
 (test next-word-boundary
   "tests to round up lengths on 32-bit boundaries"
@@ -171,10 +168,17 @@
 
 (test default-software-attribute
   "call encode an empty software attribute"
-  (let* ((attributes (cl-stun::stun-message-attributes
+  (let* ((attributes (stun-message-attributes
                       (decode-message
                        (encode-message
                         (make-stun-message
                          :attributes '(:software)))))))
     (is (string= *default-software-attribute*
                  (cadar attributes)))))
+
+(test encode-arbitrary-octets
+  "should be able to encode arbitrary octets"
+  (let* ((data (bytes #x01 #x02 #x03 #x04 #x05))
+         (encoded (encode-attribute #x0003 nil (list data))))
+    (is (= 0 (logand (length encoded) #b11))
+        (equalp data (tlv-value encoded)))))

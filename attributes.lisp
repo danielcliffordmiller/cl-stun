@@ -58,6 +58,11 @@
 (defun (setf tlv-length) (value buffer &optional (offset 0))
   (setf (ub16ref/be buffer (+ offset +tlv-length-offset+)) value))
 
+(defun tlv-value (buffer &optional (offset 0))
+  (subseq buffer
+          (+ offset +tlv-header-size+)
+          (+ offset +tlv-header-size+ (tlv-length buffer offset))))
+
 (defmacro with-tlv-buffer ((buffer-name attribute-type length) &body body)
   "Macro to help create encoded attributes.
 
@@ -70,7 +75,7 @@
 			:element-type '(unsigned-byte 8)))
 	  (,attribute-code
 	    (car (rassoc ,attribute-type *attribute-types*))))
-      (setf (tlv-type ,buffer-name) ,attribute-code)
+      (setf (tlv-type ,buffer-name) (or ,attribute-code ,attribute-type))
       (setf (tlv-length ,buffer-name) ,length)
       ,@body
       ,buffer-name)))
@@ -85,6 +90,15 @@
 
 (defgeneric encode-attribute (type l-octets args)
   (:documentation "This is a mechanism by which the different attributes are turned to sequences of octets"))
+
+(defmethod encode-attribute (type l-octets args)
+  (let ((data (car args))
+        (accepted-type '(simple-array (unsigned-byte 8))))
+    (if (not (typep data accepted-type))
+        (error 'type-error :datum data :expected-type accepted-type))
+    (with-tlv-buffer (buffer type (length data))
+      (setf (subseq buffer +tlv-header-size+)
+            data))))
 
 (defmethod encode-attribute ((type (eql :mapped-address)) l-octets args)
   "render mapped address attribute"
@@ -274,17 +288,15 @@
 		(+ (message-length buffer)
 		   +message-header-size+))
 	     (nreverse acc)
-	     (let ((tlv-end-offset
-		     (+ offset
-			+tlv-header-size+
-			(tlv-length buffer offset))))
-	       (scan-helper
-		(next-word-boundary tlv-end-offset)
-		(cons
-		 (list (lookup-attribute-type (tlv-type buffer offset))
-		       offset
-		       tlv-end-offset)
-		 acc))))))
+	     (scan-helper
+	      (next-word-boundary
+               (+ offset
+		  +tlv-header-size+
+		  (tlv-length buffer offset)))
+	      (cons
+	       (list (lookup-attribute-type (tlv-type buffer offset))
+		     offset)
+	       acc)))))
     (scan-helper +message-header-size+ nil)))
 
 (defun lookup-attribute-type (code)

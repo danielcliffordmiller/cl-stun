@@ -9,6 +9,8 @@
    :flexi-streams)
   (:export
    #:make-stun-message
+   #:stun-message-attributes
+
    #:looks-like-stun-message
    #:encode-message
    #:decode-message
@@ -17,6 +19,10 @@
 
    #:bytes
 
-   #:*default-software-attribute*)
+   #:*default-software-attribute*
+
+   #:tlv-type
+   #:tlv-length
+   #:tlv-value)
   (:shadow
    #:xor))

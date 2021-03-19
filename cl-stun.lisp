@@ -117,6 +117,7 @@
     (setf (transaction-id header)
 	  (stun-message-transaction-id stun-message))
 
+    ;; now the attributes
     (loop :with buffers = (list header)
 	  :for attribute :in (stun-message-attributes stun-message)
 	  :do (appendf buffers
@@ -160,10 +161,7 @@
            (car tlv-data)
 	   (ensure-list (decode-attribute
                          (car tlv-data)
-                         (funcall #'subseq
-                                  buffer
-                                  (+ +tlv-header-size+ (second tlv-data))
-                                  (third tlv-data))
+                         (tlv-value buffer (second tlv-data))
 	                 buffer
 	                 (second tlv-data)))))
       (scan-for-attributes buffer)))))
