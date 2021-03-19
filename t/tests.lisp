@@ -164,3 +164,7 @@
 		    :alternate-server in-data nil nil)))
     (is (equalp #(192 168 1 102) (first out-data)))
     (is (= 80 (second out-data)))))
+
+(test zero-parameter-attributes
+  "test that zero parameter attributes can be written"
+  (finishes (cl-stun::encode-stun-message (make-stun-message :attributes '(:fingerprint)))))

@@ -88,7 +88,7 @@
        ;; 3: The last two bits of the message length field should be 0x00
        (zerop (ldb (byte 2 0) (elt byte-sequence 3)))
        ;; 4: (optionally) a FIGNERPRINT attribute
-       (let ((last-attr (car (last (scan-for-attributes byte-sequence)))))
+       (let ((last-attr (lastcar (scan-for-attributes byte-sequence))))
 	 (if (eql (car last-attr) :fingerprint)
 	     (decode-attribute
 	      :fingerprint
@@ -121,9 +121,14 @@
 	  :for attribute :in (stun-message-attributes stun-message)
 	  :do (appendf buffers
 		       (list
-			(encode-attribute (car attribute)
+                        (apply #'encode-attribute
+                               (if (listp attribute)
+                                   (list (car attribute)
 					  buffers
-					  (cdr attribute))))
+					  (cdr attribute))
+                                   (list attribute
+                                         buffers
+                                         nil)))))
 	  :finally
 	     (return
 	       (let* ((result (join-sequences buffers)))
