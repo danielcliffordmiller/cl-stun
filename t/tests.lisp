@@ -30,15 +30,15 @@
 
 (test looks-like-stun-message
   "does it look like a stun message"
-  (is-true (cl-stun::looks-like-stun-message
-	    (cl-stun::encode-stun-message (make-stun-message))))
-  (is-true (cl-stun::looks-like-stun-message
-	    (cl-stun::encode-stun-message
+  (is-true (looks-like-stun-message
+	    (encode-message (make-stun-message))))
+  (is-true (looks-like-stun-message
+	    (encode-message
 	     (make-stun-message :attributes '((:fingerprint t))))))
-  (let ((message (cl-stun::encode-stun-message
+  (let ((message (encode-message
   		  (make-stun-message :attributes '((:fingerprint t))))))
     (incf (elt message (random (length message))) 4)
-    (is-false (cl-stun::looks-like-stun-message message))))
+    (is-false (looks-like-stun-message message))))
 
 (test ip-address-parsing
   "test that we can determine different sorts of ip addresses"
@@ -57,7 +57,7 @@
   "test the attribute creation of a mapped attribute"
   (let* ((ip-address #(192 168 1 101))
 	 (port 80)
-	 (buf-res (cl-stun::encode-attribute
+	 (buf-res (encode-attribute
 		   :mapped-address '() (list
 					ip-address
 					port))))
@@ -73,7 +73,7 @@
 (test encode-software
   "test the encoding of the software attribute"
   (let* ((test-string "not on 4 byte boundary")
-         (out-data (cl-stun::encode-attribute :software nil (list test-string))))
+         (out-data (encode-attribute :software nil (list test-string))))
     (is (string= test-string
                  (octets-to-string
                   (subseq out-data
@@ -93,7 +93,7 @@
 (test decode-mapped-address-attribute
   "tests the decoding of a mapped address attribute"
   (let* ((in-data (bytes 0 1 0 80 192 168 1 102))
-	 (out-data (cl-stun::decode-attribute
+	 (out-data (decode-attribute
 		    :mapped-address in-data nil nil)))
     (is (equalp #(192 168 1 102) (first out-data)))
     (is (= 80 (second out-data)))))
@@ -106,7 +106,7 @@
 			 #x41 #x74 #x74 #x72
 			 #x69 #x62 #x75 #x74
 			 #x65))
-	 (out-data (cl-stun::decode-attribute
+	 (out-data (decode-attribute
 		    :error-code in-data nil nil)))
     (is (= 420 (first out-data)))
     (is (string=
@@ -116,13 +116,13 @@
 (test decode-unknown-attributes-attribute
   "read the function title, gosh"
   (let* ((in-data (bytes #x00 #x03))
-	 (out-data (cl-stun::decode-attribute
+	 (out-data (decode-attribute
 		    :unknown-attributes in-data nil nil)))
     (is (equalp '(3) out-data))))
 
 (test decode-software-attribute
   (let ((test-string "foobar"))
-    (is (string= test-string (cl-stun::decode-attribute
+    (is (string= test-string (decode-attribute
 			      :software (flexi-streams:string-to-octets
 					 test-string)
 			      nil nil)))))
@@ -131,7 +131,7 @@
 (test decode-xor-mapped-address-attribute
   (let* ((in-data (bytes #x00 #x01 #xFA #xDA
 			 #xE1 #xBA #xA5 #x58))
-	 (out-data (cl-stun::decode-attribute
+	 (out-data (decode-attribute
 		    :xor-mapped-address
 		    in-data
 		    *res-xor-mapped*
@@ -150,7 +150,7 @@
   "tests username attribute"
   (let* ((username "dantheman")
 	 (in-data (flexi-streams:string-to-octets username))
-	 (out-data (cl-stun::decode-attribute
+	 (out-data (decode-attribute
 		    :username
 		    in-data
 		    nil
@@ -160,11 +160,21 @@
 (test alternate-server-attribute
   "tests the decoding of the alternate service attribute"
   (let* ((in-data (bytes 0 1 0 80 192 168 1 102))
-	 (out-data (cl-stun::decode-attribute
+	 (out-data (decode-attribute
 		    :alternate-server in-data nil nil)))
     (is (equalp #(192 168 1 102) (first out-data)))
     (is (= 80 (second out-data)))))
 
 (test zero-parameter-attributes
   "test that zero parameter attributes can be written"
-  (finishes (cl-stun::encode-stun-message (make-stun-message :attributes '(:fingerprint)))))
+  (finishes (encode-message (make-stun-message :attributes '(:fingerprint)))))
+
+(test default-software-attribute
+  "call encode an empty software attribute"
+  (let* ((attributes (cl-stun::stun-message-attributes
+                      (decode-message
+                       (encode-message
+                        (make-stun-message
+                         :attributes '(:software)))))))
+    (is (string= *default-software-attribute*
+                 (cadar attributes)))))

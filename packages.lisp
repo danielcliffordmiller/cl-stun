@@ -9,6 +9,14 @@
    :flexi-streams)
   (:export
    #:make-stun-message
-   #:bytes)
+   #:looks-like-stun-message
+   #:encode-message
+   #:decode-message
+   #:encode-attribute
+   #:decode-attribute
+
+   #:bytes
+
+   #:*default-software-attribute*)
   (:shadow
    #:xor))

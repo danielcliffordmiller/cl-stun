@@ -99,7 +99,7 @@
 	      (second last-attr))
 	     t))))
 
-(defun encode-stun-message (stun-message)
+(defun encode-message (stun-message)
   "turn a stun-message into a sequence of bytes"
   (declare (type stun-message stun-message))
   (let ((header (make-array (list +message-header-size+)
@@ -222,7 +222,7 @@
 
 (defun bind-request (host &optional (port 3478))
   (let ((s (socket-connect host port :protocol :datagram)))
-    (socket-send s (encode-stun-message (make-stun-message)) nil)
+    (socket-send s (encode-message (make-stun-message)) nil)
     (socket-receive s *buffer* nil)
     (socket-close s)
     (decode-message *buffer*)))
@@ -243,7 +243,7 @@
          (declare (ignore buffer length))
          (let ((message (decode-message *buffer*)))
            (socket-send socket
-                        (encode-stun-message
+                        (encode-message
                          (make-stun-message :transaction-id (stun-message-transaction-id message)
                                             :class-type :success-response
                                             :attributes `((:xor-mapped-address ,request-addr ,request-port))))

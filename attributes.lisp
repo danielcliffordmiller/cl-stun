@@ -40,6 +40,12 @@
     (#x01 . :md5)
     (#x02 . :sha256)))
 
+(defvar *default-software-attribute*
+  (concatenate 'string
+               "cl-stun "
+               (asdf:component-version
+                (asdf:find-system :cl-stun))))
+
 (defun tlv-type (buffer &optional (offset 0))
   (ub16ref/be buffer (+ offset +tlv-type-offset+)))
 
@@ -111,7 +117,7 @@
 (defmethod encode-attribute ((type (eql :software)) l-octets args)
   "render software attribute"
   (declare (ignore l-octets))
-  (let ((data (string-to-octets (car args))))
+  (let ((data (string-to-octets (or (car args) *default-software-attribute*))))
     (with-tlv-buffer (buffer type (length data))
       (setf (subseq buffer +tlv-header-size+) data))))
 
