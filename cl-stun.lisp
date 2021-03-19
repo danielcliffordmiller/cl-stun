@@ -153,14 +153,14 @@
       #'(lambda (tlv-data)
           (cons
            (car tlv-data)
-	   (decode-attribute
-            (car tlv-data)
-            (funcall #'subseq
-                     buffer
-                     (+ +tlv-header-size+ (second tlv-data))
-                     (third tlv-data))
-	    buffer
-	    (second tlv-data))))
+	   (ensure-list (decode-attribute
+                         (car tlv-data)
+                         (funcall #'subseq
+                                  buffer
+                                  (+ +tlv-header-size+ (second tlv-data))
+                                  (third tlv-data))
+	                 buffer
+	                 (second tlv-data)))))
       (scan-for-attributes buffer)))))
 
 ;; buffer utils
@@ -222,11 +222,12 @@
     (socket-close s)
     (decode-message *buffer*)))
 
-(defun print-buffer ()
+(defun print-buffer (&optional (buffer *buffer*))
   (loop :for i :below (+ +message-header-size+
-			 (message-length *buffer*)) :by 4
+			 (message-length buffer)) :by 4
 	:do (format t "~{#x~2,'0X ~}~%"
-		    (concatenate 'list (subseq *buffer* i (+ i 4))))))
+		    (concatenate 'list (subseq buffer i (+ i 4)))))
+  buffer)
 
 (defun run-simple-server (&optional (port 3478))
   (let ((socket (socket-connect nil nil :protocol :datagram :local-port port)))

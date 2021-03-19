@@ -77,12 +77,12 @@
                +tlv-header-size+)
             +message-header-size+)))
 
-(defgeneric encode-attribute (type octets args)
+(defgeneric encode-attribute (type l-octets args)
   (:documentation "This is a mechanism by which the different attributes are turned to sequences of octets"))
 
-(defmethod encode-attribute ((type (eql :mapped-address)) octets args)
+(defmethod encode-attribute ((type (eql :mapped-address)) l-octets args)
   "render mapped address attribute"
-  (declare (ignore octets))
+  (declare (ignore l-octets))
   (assert (eql type :mapped-address))
   (destructuring-bind (ip-addr port) args
     (destructuring-bind (addr family) (parse-ip-addr ip-addr)
@@ -92,7 +92,7 @@
 	(setf (ub16ref/be buffer 6) port)
 	(setf (subseq buffer 8) addr)))))
 
-(defmethod encode-attribute ((type (eql :xor-mapped-address)) octets args)
+(defmethod encode-attribute ((type (eql :xor-mapped-address)) l-octets args)
   "render mapped address attribute"
   (destructuring-bind (ip-addr port) args
     (destructuring-bind (addr family) (parse-ip-addr ip-addr)
@@ -105,44 +105,44 @@
 	(dotimes (i (length addr))
 	  (setf (elt buffer (+ +tlv-header-size+ 4 i))
 		(logxor (elt addr i)
-			(elt (car octets)
+			(elt (car l-octets)
 			     (+ +magic-cookie-offset+ i)))))))))
 
-(defmethod encode-attribute ((type (eql :software)) octets args)
+(defmethod encode-attribute ((type (eql :software)) l-octets args)
   "render software attribute"
-  (declare (ignore octets))
-  (let ((data (string-to-octets args)))
+  (declare (ignore l-octets))
+  (let ((data (string-to-octets (car args))))
     (with-tlv-buffer (buffer type (length data))
       (setf (subseq buffer +tlv-header-size+) data))))
 
-(defmethod encode-attribute ((type (eql :fingerprint)) octets args)
+(defmethod encode-attribute ((type (eql :fingerprint)) l-octets args)
   (declare (ignore args)) ;; not sure this is the best way to handle this
-  (set-message-length-from-octets (car octets) octets 4)
+  (set-message-length-from-octets (car l-octets) l-octets 4)
   (with-tlv-buffer (buffer type 4)
     (let ((digest (make-digest :crc32)))
-      (dolist (seq octets)
+      (dolist (seq l-octets)
 	(update-digest digest seq))
       (setf (ub32ref/be buffer +tlv-header-size+)
 	    (logxor *fingerprint-xor*
 		    (octets-to-integer (produce-digest digest)))))))
 
-(defmethod encode-attribute ((type (eql :username)) octets args)
-  (declare (ignore octets))
-  (let ((value (string-to-octets (opaque-string args))))
+(defmethod encode-attribute ((type (eql :username)) l-octets args)
+  (declare (ignore l-octets))
+  (let ((value (string-to-octets (opaque-string (car args)))))
     ;; TODO: check length of username
     (with-tlv-buffer (buffer type (length value))
       (setf (subseq buffer +tlv-header-size+) value))))
 
 ;; TODO: add support for algorithm parameters
-(defmethod encode-attribute ((type (eql :password-algorithm)) octets args)
-  (declare (ignore octets))
-  (let ((pa-code (car (rassoc args *password-algorithms*))))
+(defmethod encode-attribute ((type (eql :password-algorithm)) l-octets args)
+  (declare (ignore l-octets))
+  (let ((pa-code (car (rassoc (car args) *password-algorithms*))))
     (with-tlv-buffer (buffer :password-algorithm 4)
       (setf (ub16ref/be buffer +tlv-header-size+) pa-code))))
 
 ;; TODO: add support for algorithm parameters
-(defmethod encode-attribute ((type (eql :password-algorithms)) octets args)
-  (declare (ignore octets))
+(defmethod encode-attribute ((type (eql :password-algorithms)) l-octets args)
+  (declare (ignore l-octets))
   (let* ((pa-codes (mapcar #'(lambda (pa)
 			       (car (rassoc pa *password-algorithms*)))
 			   args))
@@ -153,12 +153,12 @@
 					    +tlv-header-size+))
 		      (elt pa-codes i))))))
 
-(defmethod encode-attribute ((type (eql :message-integrity)) octets args)
-  (set-message-length-from-octets (car octets) octets 20)
+(defmethod encode-attribute ((type (eql :message-integrity)) l-octets args)
+  (set-message-length-from-octets (car l-octets) l-octets 20)
   (with-tlv-buffer (buffer type 20)
     (let* ((key (string-to-octets (opaque-string (car args))))
            (hmac (make-hmac key :sha1)))
-      (dolist (seq octets)
+      (dolist (seq l-octets)
         (update-hmac hmac seq))
       (let ((digest (hmac-digest hmac)))
         (setf (subseq buffer +tlv-header-size+) digest)))))

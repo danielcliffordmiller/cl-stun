@@ -16,7 +16,9 @@
 (defsystem "cl-stun/test"
   :description "tests for the cl-stun library"
   :author "Dan Miller <danielcliffordmiller@gmail.com>"
-  :depends-on (:cl-stun :fiveam)
+  :depends-on (:cl-stun
+               :fiveam
+               :flexi-streams)
   :components ((:module "t"
 		:components ((:file "tests"))))
   :perform (test-op (o s)

@@ -6,7 +6,8 @@
    :cl-stun
    :cl-stun.samples
    :ironclad
-   :fiveam))
+   :fiveam
+   :flexi-streams))
 
 (in-package :cl-stun.test)
 
@@ -68,6 +69,17 @@
     ;; port is port in
     (is (= port (ub16ref/be buf-res 6)))
     (is (equalp ip-address (subseq buf-res 8)))))
+
+(test encode-software
+  "test the encoding of the software attribute"
+  (let* ((test-string "not on 4 byte boundary")
+         (out-data (cl-stun::encode-attribute :software nil (list test-string))))
+    (is (string= test-string
+                 (octets-to-string
+                  (subseq out-data
+                          cl-stun::+tlv-header-size+
+                          (+ (length test-string) ;; this only works under UTF-8 on ASCII !
+                             cl-stun::+tlv-header-size+)))))))
 
 (test next-word-boundary
   "tests to round up lengths on 32-bit boundaries"
