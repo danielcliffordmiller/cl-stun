@@ -7,7 +7,7 @@
   :serial t
   :components ((:file "packages")
 	       (:file "utils")
-	       (:file "offsets")
+	       (:file "constants")
 	       (:file "cl-stun")
 	       (:file "attributes")
 	       (:file "samples"))
