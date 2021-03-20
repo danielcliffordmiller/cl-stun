@@ -137,8 +137,8 @@
 
 (defmethod encode-attribute ((type (eql :fingerprint)) l-octets args)
   (declare (ignore args)) ;; not sure this is the best way to handle this
-  (set-message-length-from-octets (car l-octets) l-octets 4)
-  (with-tlv-buffer (buffer type 4)
+  (set-message-length-from-octets (car l-octets) l-octets +crc32-size+)
+  (with-tlv-buffer (buffer type +crc32-size+)
     (let ((digest (make-digest :crc32)))
       (dolist (seq l-octets)
 	(update-digest digest seq))
@@ -179,26 +179,36 @@
 					    +tlv-header-size+))
 		      (elt pa-codes i))))))
 
+(defun message-integrity (type l-octets args algorithm)
+  (let ((size (ecase algorithm
+                (:sha1 +sha1-size+)
+                (:sha256 +sha256-size+))))
+    (set-message-length-from-octets (car l-octets) l-octets size)
+    (with-tlv-buffer (buffer type size)
+      (let* ((key
+               (cond
+                 ((typep (car args) '(simple-array (unsigned-byte 8)))
+                  (car args))
+                 ((= 1 (length args)) (string-to-octets (opaque-string (car args))))
+                 ((= 3 (length args))
+                  (digest-sequence
+                   :md5
+                   (string-to-octets
+                    (format nil "~@{~a~^:~}"
+                            (first args)
+                            (opaque-string (second args))
+                            (opaque-string (third args))))))))
+             (hmac (make-hmac key algorithm)))
+        (dolist (seq l-octets)
+          (update-hmac hmac seq))
+        (let ((digest (hmac-digest hmac)))
+          (setf (subseq buffer +tlv-header-size+) digest))))))
+
 (defmethod encode-attribute ((type (eql :message-integrity)) l-octets args)
-  (set-message-length-from-octets (car l-octets) l-octets 20)
-  (with-tlv-buffer (buffer type 20)
-    (let* ((key (cond
-                  ((typep (car args) '(simple-array (unsigned-byte 8)))
-                   (car args))
-                  ((= 1 (length args)) (string-to-octets (opaque-string (car args))))
-                  ((= 3 (length args))
-                   (digest-sequence
-                    :md5
-                    (string-to-octets
-                     (format nil "~@{~a~^:~}"
-                             (first args)
-                             (opaque-string (second args))
-                             (opaque-string (third args))))))))
-           (hmac (make-hmac key :sha1)))
-      (dolist (seq l-octets)
-        (update-hmac hmac seq))
-      (let ((digest (hmac-digest hmac)))
-        (setf (subseq buffer +tlv-header-size+) digest)))))
+  (message-integrity type l-octets args :sha1))
+
+(defmethod encode-attribute ((type (eql :message-integrity-sha256)) l-octets args)
+  (message-integrity type l-octets args :sha256))
 
 (defgeneric decode-attribute (type octets message offset)
   (:documentation "Generic for decoding the attributes. Should be differentiated based on the type. Octets is the exact value of the attribute to decode, message is the full message octet buffer and offset is the place at which this attribute was found in the message buffer."))

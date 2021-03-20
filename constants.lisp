@@ -21,3 +21,9 @@
 
 (defconstant +tlv-type-offset+ 0)
 (defconstant +tlv-length-offset+ 2)
+
+(defconstant +crc32-size+ 4)
+
+(defconstant +sha1-size+ 20)
+
+(defconstant +sha256-size+ 32)
