@@ -25,3 +25,14 @@
                     (uiop:symbol-call :fiveam '#:run!
 				      (uiop:find-symbol* '#:test-suite
 							 :cl-stun.test))))
+
+(defsystem "cl-stun/precis"
+  :description "system to implement the PRECIS string validation framework"
+  :author "Dan Miller <danielcliffordmiller@gmail.com>"
+  :depends-on ("alexandria" "cl-unicode")
+  :components ((:module "precis"
+		:serial t
+		:components ((:file "packages")
+			     (:file "old-hangul-jamo")
+			     (:file "context")
+			     (:file "precis")))))
