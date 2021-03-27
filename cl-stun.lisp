@@ -212,6 +212,31 @@
 		+transaction-id-offset+
 		+transaction-id-end+) value))
 
+(defun stun (&optional (attributes nil) (method-type :binding) (class-type :request))
+  (let ((message (make-stun-message :method-type method-type
+				    :class-type class-type
+				    :attributes attributes)))
+    (values
+     (encode-message message)
+     (stun-message-transaction-id message))))
+
+(defun stun-send (socket &rest rest)
+  (multiple-value-bind (message transaction-id) (apply #'stun rest)
+    (values
+     (socket-send socket message nil)
+     transaction-id)))
+
+(let ((stun-buffer (make-array '(578) :element-type '(unsigned-byte 8))))
+  (defun stun-receive (socket)
+    (socket-receive socket stun-buffer nil)
+    (decode-message stun-buffer)))
+
+(defun get-mapped-address (stun-message)
+  (let ((attributes (stun-message-attributes stun-message)))
+    (if-let (xor-mapped (assoc :xor-mapped-address attributes))
+      (cdr xor-mapped)
+      (cdr (assoc :mapped-address attributes)))))
+
 ;;;; just for fun!
 
 (defvar *buffer*
@@ -220,7 +245,9 @@
 
 (defun bind-request (host &optional (port 3478))
   (let ((s (socket-connect host port :protocol :datagram)))
-    (socket-send s (encode-message (make-stun-message)) nil)
+    (socket-send s (encode-message (make-stun-message
+					 :attributes '((:fingerprint t))
+					 )) nil)
     (socket-receive s *buffer* nil)
     (socket-close s)
     (decode-message *buffer*)))

@@ -12,6 +12,12 @@
    #:stun-message-attributes
 
    #:looks-like-stun-message
+
+   #:stun
+   #:stun-send
+   #:stun-receive
+   #:get-mapped-address
+
    #:encode-message
    #:decode-message
    #:encode-attribute
