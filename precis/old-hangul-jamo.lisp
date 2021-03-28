@@ -403,20 +403,10 @@
     (#xD76D . #xD787)
     (#xD789 . #xD7A3)))
 
-(eval-when (:execute)
-    (macrolet
-	((range-helper (code)
-	   (with-gensyms (code-s)
-	     `(let ((,code-s ,code))
-		(if (>= ,code-s ,(caar *hangul-syllable-lvt-ranges*))
-		    ;; I estimate that most code-points won't be
-		    ;; hangul, so one check at the top to handle
-		    ;; 99% of our cases for before running through
-		    ;; all ~800 checks.
-		    (or ,@(mapcar
-			   #'(lambda (r)
-			       `(and (>= ,code-s ,(car r))
-				     (<= ,code-s ,(cdr r))))
-			   *hangul-syllable-lvt-ranges*)))))))
-      (defun hangul-syllable-lvt-p (char)
-	(range-helper (char-code char)))))
+(let ((hash (make-hash-table)))
+  (mapcar #'(lambda (r)
+	      (loop :for n :from (car r) :to (cdr r)
+		    :do (setf (gethash n hash) t)))
+	  *hangul-syllable-lvt-ranges*)
+  (defun hangul-syllable-lvt-p (char)
+    (values (gethash (char-code char) hash))))
