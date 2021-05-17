@@ -29,6 +29,8 @@
 
    #:tlv-type
    #:tlv-length
-   #:tlv-value)
+   #:tlv-value
+
+   #:bind-request)
   (:shadow
    #:xor))
