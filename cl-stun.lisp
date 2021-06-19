@@ -2,6 +2,8 @@
 
 (defvar *magic-cookie* (bytes #x21 #x12 #xA4 #x42))
 
+(defvar *stun-timeout-seconds* 1)
+
 ;;; these masks are defined as a list of byte-specs concerning
 ;;; the bits of interest for unpacking
 (defvar *class-type-mask*
@@ -245,12 +247,17 @@
 
 (defun bind-request (host &optional (port 3478))
   (let ((s (socket-connect host port :protocol :datagram)))
-    (socket-send s (encode-message (make-stun-message
-					 :attributes '((:fingerprint t))
-					 )) nil)
-    (socket-receive s *buffer* nil)
-    (socket-close s)
-    (decode-message *buffer*)))
+    (unwind-protect
+	 (progn
+	   (socket-send s (encode-message (make-stun-message
+					   :attributes '((:fingerprint t))
+					   )) nil)
+	   (when (wait-for-input s
+				 :timeout *stun-timeout-seconds*
+				 :ready-only t)
+	     (socket-receive s *buffer* nil)
+	     (decode-message *buffer*)))
+      (socket-close s))))
 
 (defun print-buffer (&optional (buffer *buffer*))
   (loop :for i :below (+ +message-header-size+
